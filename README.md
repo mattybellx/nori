@@ -1,4 +1,4 @@
-# Nori
+# nori
 
 **Ask once. Get the best answer — with the thinking shown.**
 
