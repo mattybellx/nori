@@ -13,7 +13,48 @@ so the answer you actually read is better than any single attempt.
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Dependencies: stdlib only](https://img.shields.io/badge/dependencies-stdlib%20only-4caf50)](pyproject.toml)
+[![Tests: 124 passing](https://img.shields.io/badge/tests-124%20passing-success)](tests)
 [![Status: beta](https://img.shields.io/badge/status-beta-yellow)]
+
+## Table of contents
+
+- [Features](#features)
+- [Why it's different](#why-its-different)
+- [How it works](#how-it-works)
+- [Quickstart](#quickstart)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+  - [Chat UI (recommended)](#chat-ui-recommended)
+  - [Terminal Q&A](#terminal-qa)
+  - [Benchmarks](#benchmarks)
+- [Providers](#providers)
+- [Benchmark suites](#benchmark-suites)
+- [Measured results (honest)](#measured-results-honest)
+- [Project structure](#project-structure)
+- [Adding a strategy](#adding-a-strategy)
+- [Feature flags](#feature-flags)
+- [Documentation](#documentation)
+- [FAQ](#faq)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+| | |
+|---|---|
+| Visible reasoning | Real hidden chain-of-thought streams live into per-strategy, independently collapsible **Reasoning** blocks |
+| Best-of-all answers | The workflow merges the strongest parts of every candidate into one final answer, with a "which parts came from where" note |
+| Bring your own key | DeepSeek, OpenAI, GitHub Models or Ollama — pasted in Settings, connection-tested, stored locally, hot-swapped with no restart |
+| Auto / Dev modes | Auto returns one clean synthesized answer; Dev shows every strategy card, scores and ratings |
+| Answer gallery | One **All** button opens every original candidate with Prev/Next + arrow-key stepping |
+| Zero dependencies | Entire runtime is Python's standard library — no third-party packages |
+| Deterministic | Calibrated MockLLM + per-run reseeding make tests and benchmarks reproducible |
+| Evidence-driven | Every strategy decision is traced to peer-reviewed research; honest results, including negatives |
+| Local & private | Your questions and answers stay in local `sessions/` files; keys never leave the machine |
+| Cross-platform | Windows, macOS and Linux; TTY-aware output with clean ASCII fallback |
 
 ## Why it's different
 
@@ -35,19 +76,35 @@ so the answer you actually read is better than any single attempt.
 - **Deterministic by default** — a calibrated `MockLLM` makes tests and
   benchmarks reproducible, so strategy comparisons are causal, not anecdotal.
 
-## What it is
+## How it works
 
-A modular framework for allocating test-time compute across agent strategies:
+For every question, Nori runs a small evidence-driven workflow:
 
-- **Verifier-first**: nothing improves unless a signal can measure it.
-- **Strategies**: ReAct (baseline), Best-of-N (canonical baseline), Reflexion,
-  Self-Refine (verifier-gated), LATS-lite tree search (MCTS + sound pruning),
-  whole-task & per-step model escalation, adaptive compute allocation, and
-  MoA-lite (feature-flagged).
-- **Real-LLM providers**: OpenAI-compatible client (stdlib-only) for DeepSeek,
-  Ollama, OpenAI, and GitHub Models — see `dse/providers.py`.
-- **Measured, not claimed**: a paired benchmark harness with McNemar + bootstrap
-  significance reporting, latency, tokens, cost, and multi-seed aggregation.
+```mermaid
+flowchart LR
+    A[Your question] --> B[Run strategies in parallel]
+    B --> C1[react]
+    B --> C2[reflexion]
+    B --> C3[best_of_n]
+    B --> C4[self_refine]
+    C1 --> D[AI judge scores each answer 0-10]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E[Arbiter picks the best candidate]
+    E --> F[Synthesize best-of-all answer]
+    F --> G[One final answer + provenance note]
+```
+
+1. **Run** — several agent strategies answer in parallel (ReAct, Reflexion,
+   Best-of-N, Self-Refine, and more). Each one's real chain-of-thought streams
+   into the thinking panel as it happens.
+2. **Judge** — a calibrated LLM judge scores every answer 0-10 with feedback
+   (the judge prompt is calibrated so scores actually differentiate).
+3. **Pick** — an arbiter ranks the candidates and crowns the strongest one.
+4. **Synthesize** — the engine merges the strongest parts of *all* candidates
+   into one final, polished answer, and that merged answer is what you read —
+   with a short note on which parts came from where.
 
 ## Quickstart
 
@@ -57,169 +114,88 @@ python -m pip install -e ".[dev]"
 
 cd deepseek_engine
 python -m pytest tests -q        # 124 tests
-python -m dse.benchmarks.run_benchmark --seed 0 --n-tasks 48 --suite all
-python -m dse.benchmarks.run_benchmark --seed 0 --seeds 3                # multi-seed
-python -m dse.benchmarks.run_benchmark --flag llm_judge:true             # noisy-judge experiment
-python -m dse.benchmarks.run_benchmark --provider ollama                 # real LLM (local)
-python -m dse.chat                                                       # Grok-style chat UI
+python -m dse.chat               # open the chat UI at http://127.0.0.1:8787
 ```
 
-> After `pip install -e .` you can run `python -m dse.chat`, `python -m dse.ask`,
-> and `python -m dse.benchmarks.run_benchmark` from **any** directory. There are
-> also double-click launchers: `chat.bat` and `ask.bat` in the project root
-> (and `chat.bat` one level up).
+That's it — no API key is needed to open the UI (you can use Ollama locally for
+free, or paste a key in Settings when you're ready).
 
-## Real-LLM providers (DeepSeek / Ollama / GitHub Models)
+## Requirements
 
-The engine speaks OpenAI-compatible chat-completions (stdlib only, no deps).
-Configure via environment variables (see `dse/providers.py`):
+- **Python 3.10+** (developed and tested on 3.14)
+- A model provider. One of:
+  - **Ollama** (free, local — no key needed)
+  - **DeepSeek API** key (recommended; defaults to `deepseek-v4-flash`)
+  - **OpenAI** or **GitHub Models** key
+- Nothing else. No node, no database, no compiled extensions.
+
+## Installation
+
+### Option A — install as a package (recommended)
 
 ```bash
-# DeepSeek API (V4 Flash by default)
-$env:DSE_PROVIDER_KEY = "sk-..."
-python -m dse.benchmarks.run_benchmark --provider deepseek --suite real
-python -m dse.benchmarks.run_benchmark --provider deepseek --suite hard-real  # harder multi-step tasks
-
-# Ollama (local, no key)
-python -m dse.benchmarks.run_benchmark --provider ollama
-
-# GitHub Models (Copilot-class models with a GitHub PAT)
-$env:DSE_PROVIDER_KEY = "github_pat_..."
-python -m dse.benchmarks.run_benchmark --provider github --model-cheap gpt-4o-mini
+git clone https://github.com/mattybellx/nori.git
+cd nori/deepseek_engine
+python -m pip install -e ".[dev]"
 ```
 
-> **Copilot note (honest):** VS Code Copilot has no public third-party API, so
-> the engine cannot call Copilot directly. GitHub Models is OpenAI-compatible
-> and serves Copilot-class models with a GitHub PAT — that is the supported
-> path.
+After that, `python -m dse.chat`, `python -m dse.ask` and
+`python -m dse.benchmarks.run_benchmark` work from any directory.
 
-## Run with your DeepSeek token (step by step)
+### Option B — run in place (no install)
 
-1. **Paste your token into `.env`** (already created, git-ignored — open it and
-   fill in `DSE_PROVIDER_KEY=`):
+The runtime has zero third-party dependencies, so you can also just run from
+the folder:
 
-   ```bash
-   # .env
-   DSE_PROVIDER_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
-   ```
+```bash
+cd nori/deepseek_engine
+python -m dse.chat
+```
 
-   Get a token at <https://platform.deepseek.com> → API Keys. (A documented
-   template lives in `.env.example`.)
+### Option C — double-click
 
-2. **Run the real suite against DeepSeek** — 12 natural-language math/logic/code
-   tasks with deterministic checkers (no code execution):
+On Windows, `chat.bat` / `ask.bat` (in the repo root or in `deepseek_engine/`)
+launch the UI and terminal Q&A directly.
 
-   ```bash
-   python -m dse.benchmarks.run_benchmark --provider deepseek --suite real
-   ```
+## Configuration
 
-   The engine reads the token from `.env` automatically. Both tiers use
-   **DeepSeek V4 Flash** (`deepseek-v4-flash`) — the only model used by default.
-   `--seeds N` works too; pass `--judge-model deepseek-v4-pro` for a stronger
-   grader/judge.
+Everything is configured with environment variables or a local `.env` file
+(a documented template is in [`.env.example`](.env.example) — copy it to `.env`).
 
-3. **Or run locally for free with Ollama** (no token):
+| Variable | Default | Purpose |
+|---|---|---|
+| `DSE_PROVIDER_KEY` | — | API key for DeepSeek / OpenAI / GitHub Models |
+| `DSE_MODEL_CHEAP` | `deepseek-v4-flash` | Model used first by strategies |
+| `DSE_MODEL_EXPENSIVE` | `deepseek-v4-flash` | Model used for judges / escalation |
+| `DSE_PROVIDER_URL` | per-provider | Optional base URL override (e.g. a proxy) |
+| `DSE_TIMEOUT` | `120` | HTTP timeout in seconds |
+| `NO_COLOR` / `NO_UNICODE` | — | Force plain terminal output |
 
-   ```bash
-   ollama pull deepseek-r1:8b   # or any model you have
-   python -m dse.benchmarks.run_benchmark --provider ollama --suite real
-   ```
+You can also set the key from the chat UI (**Settings** panel) — it is saved
+to a local `settings.json`, never sent back to the page, and a failing key is
+never persisted.
 
-> The **synthetic** suite (`--suite all` / `easy` / `hard`) is calibrated for
-> the MockLLM (opaque step tokens) and is for reproducible strategy
-> comparisons. The **real** suites are what you benchmark real models on:
-> `--suite real` (12 easy single-step tasks) and **`--suite hard-real`**
-> (12 deliberately harder multi-step tasks — compound interest, work rates,
-> inclusion-exclusion, algorithm tracing, classic traps — all with
-> deterministic checkers, no code execution). Start with `hard-real`: the base
-> real suite is too easy to tell strategies apart.
-> **`--suite hard-tuned`** (12 tasks aimed at a strong model's weak spots) and
-> **`--suite code`** (8 code-generation tasks whose output is EXECUTED
-> locally under a timeout against hidden tests — opt-in, not a security
-> sandbox).
+## Usage
 
-## Ask questions, audit answers, track improvement
-
-**Easiest: the Nori chat UI.** (Nori is the local web app — a Grok-style
-front-end for the engine.)
+### Chat UI (recommended)
 
 ```bash
 python -m dse.chat     # opens http://127.0.0.1:8787 in your browser
 ```
 
-Type a question; each strategy's answer appears as a clean **lighter cyan-blue
-gradient card**, with the full answer text and buttons: **Good / Bad / ★1-5
-rating**, plus **"vs baseline: better / worse / same"** comparison against the
-plain single-DeepSeek answer.
+- **Auto mode** (default): ask a question and get one clean, synthesized
+  answer. Open the thinking panel to watch each strategy reason live; open
+  **All** to browse the original candidates (Prev/Next or arrow keys) and
+  re-synthesize on demand.
+- **Dev mode**: switch in Settings to see all four strategy cards with scores,
+  ratings and the manual "Pick best" flow.
+- **BYOK**: paste any DeepSeek / OpenAI / GitHub Models / Ollama key in
+  Settings. Nori tests the connection, auto-detects the provider, shows a
+  badge, and hot-swaps the live engine with no restart.
+- Extra touches: Bionic reading toggle, light/dark themes, collapsible history
+  sidebar, and a live Insights panel (per-strategy scores + improvement trend).
 
-**Two answer modes** (bottom of the sidebar → **Settings**): **Auto** (default)
-runs the full workflow and sends back a single **synthesized** answer — one
-clean card whose reply is the merged best-of-all version (marked with a small
-**✦ Best of all answers** pill). **Dev** shows all four strategy cards, scores,
-ratings and the manual "Pick best" flow.
-
-Auto mode keeps things clean for normal users: the sidebar starts closed, the
-step guide and the redundant standalone compare are hidden, and strategy names
-(react / best_of_n / …) don't appear on the answer bubble — you only see time,
-tokens and cost. While the strategies run, the **thinking** panel shows each
-one's real hidden chain-of-thought live: an independently collapsible block
-per strategy with **Reasoning** (the model's actual deliberation) and
-**Final answer** sub-sections. After the arbiter crowns a winner, the workflow
-automatically **synthesizes** the answer — it merges the strongest parts of
-every candidate into one final version and that merged answer is the reply in
-the blue bubble (saved to the session, so reopening it later shows the same
-merged answer). The winner bubble has exactly one **All** button that opens
-every ORIGINAL candidate; each entry is clickable and pops the answer
-full-screen with **‹ Prev / Next ›** (and ←/→ arrow keys) to step through all
-answers seamlessly, and the **✦ Synthesize best answer** button inside the
-panel re-merges on demand with a note on which parts came from where.
-
-**Bring your own key**: in Settings you can paste any DeepSeek / OpenAI / GitHub
-Models / Ollama key (plus an optional base URL). Nori tests the connection,
-auto-detects the provider and shows it as a badge, saves it to
-`settings.json`, and switches the live engine to it without a restart. A
-failing key is never saved, and the full key is never sent back to the page.
-Each card's footer shows a small muted line (strategy · time · tokens · cost) —
-no loud tags, no badges. Everything is saved to `sessions/` while the
-strategies run.
-
-**AI pick best** — after the four strategies answer, one click asks the model
-to rank every saved answer and crowns the winner with a subtle "★ Best answer"
-pill plus a plain-language *reason* and *what could still improve*.
-
-**Ghost compare** — opens a full side-by-side overlay: **NORMAL** (the plain
-one-shot answer) on the left, **BEST** (the one Nori judged best) on the right,
-both fully scrollable so you can read both end to end and judge for yourself.
-The AI's "why" note is pinned at the top.
-
-Every answer card also has its own **View** and **Compare** buttons: **View**
-opens that answer full-screen in a popup, and **Compare** opens it side-by-side
-with the plain one-shot answer so you can see what the strategy actually
-changed. Escape or ✕ closes any popup.
-
-The UI is a polished single page: the **Geomini** typeface (via Google Fonts,
-with system fallbacks) used for every piece of text, a **red colourway**, a
-pure-black dark mode with a clean **SVG** light/dark toggle (no emoji,
-remembers your choice), a **Bionic reading** toggle next to it — bolds the
-first ~55% of each word in answers (cards, compare columns, verdicts; code
-blocks are skipped) so long replies are easier to skim, on/off and remembers
-your choice — a collapsible history sidebar (☰ toggles it, remembers
-your choice), and a live **Insights** panel in the sidebar — per-strategy
-average judge score, rating, and the first-half-vs-second-half trend, so you
-can watch training improve from inside the app. A premium HD pass keeps it
-crisp: film-grain overlay, vignette, ligatures off, themed scrollbars.
-
-The comparison flow is a simple 3-step guide shown under every answer set:
-**1 Ask → 2 Pick best → 3 Compare**. "Pick best answer" asks the model to crown
-the winner (BEST badge + a plain-language reason), then "Compare side by side"
-opens a two-column view — **Normal answer** (the plain one-shot) on the left
-and **Worked-on answer** (the one Nori judged best) on the right — both fully
-scrollable, with the AI verdict pinned at the top. Type, press Enter or click
-**↑**, and cards stream in over SSE. The page lives in `dse/chat_page.html`,
-so you can restyle it without touching any Python (edits are picked up on the
-next reload — no server restart).
-
-Terminal alternative (same saved sessions):
+### Terminal Q&A
 
 ```bash
 python -m dse.ask                                   # interactive REPL
@@ -228,43 +204,107 @@ python -m dse.ask --stats                           # is it getting better?
 python -m dse.ask --audit sessions/ask_2026-08-05.jsonl  # replay a session
 ```
 
-In the REPL you type a question; `react`, `best_of_n`, `reflexion`, and
-`self_refine` each answer it, an LLM judge grades every answer 0-10 with
-feedback, and you rate each 1-5. `--stats` shows per-strategy averages and a
-first-half-vs-second-half trend — the "is it getting better" answer in one
-screen. Judge defaults to the fast answer model; pass `--judge-model
-deepseek-v4-pro` for a stronger grader.
+In the REPL, four strategies answer each question, an LLM judge grades every
+answer 0-10 with feedback, and you rate each 1-5. `--stats` shows per-strategy
+averages and a first-half-vs-second-half trend. Judge defaults to the fast
+answer model; pass `--judge-model deepseek-v4-pro` for a stronger grader.
 
-## Fancy terminal output
+### Benchmarks
 
-All commands print color-coded tables, section headers, and live progress bars
-(`█▓▒░` with elapsed/ETA). On a real terminal you get the full Unicode/color
-experience; when piped to a file or non-UTF-8 console, output automatically
-falls back to clean ASCII so nothing is ever mojibaked. Set `NO_COLOR=1` (or
-`NO_UNICODE=1`) to force plain output.
+```bash
+python -m dse.benchmarks.run_benchmark --seed 0 --n-tasks 48 --suite all   # synthetic
+python -m dse.benchmarks.run_benchmark --seed 0 --seeds 3                  # multi-seed
+python -m dse.benchmarks.run_benchmark --flag llm_judge:true               # noisy-judge experiment
+python -m dse.benchmarks.run_benchmark --provider ollama --suite real      # real LLM (local)
+python -m dse.benchmarks.run_benchmark --provider deepseek --suite hard-tuned
+```
 
-## Package layout
+Every run prints color-coded tables with McNemar significance, bootstrap
+confidence intervals, latency, tokens and cost, and writes JSON records to
+`benchmarks/results/`.
+
+## Providers
+
+All providers speak the OpenAI-compatible chat-completions API via a single
+stdlib-only client (`dse/providers.py`).
+
+| Provider | Key needed | Notes |
+|---|---|---|
+| DeepSeek | Yes | Default; `deepseek-v4-flash` for both tiers |
+| Ollama | No | Free, local; any chat-capable model |
+| OpenAI | Yes | Standard OpenAI key |
+| GitHub Models | Yes (PAT) | Copilot-class models via the OpenAI-compatible endpoint |
+
+> **Honest note:** VS Code Copilot has no public third-party API, so Nori
+> cannot call Copilot directly. GitHub Models is OpenAI-compatible and serves
+> Copilot-class models with a GitHub PAT — that is the supported path.
+
+## Benchmark suites
+
+| Suite | What it measures | Notes |
+|---|---|---|
+| `all` / `easy` / `hard` | Strategy mechanics on the calibrated MockLLM | Reproducible, causal comparisons |
+| `real` | 12 natural-language tasks on a real model | Deterministic checkers, no code execution |
+| `hard-real` | 12 deliberately harder multi-step tasks | Compound interest, work rates, traps, algorithm tracing |
+| `hard-tuned` | 12 tasks aimed at a strong model's weak spots | Large arithmetic, CRT, expected value |
+| `code` | 8 code-generation tasks, output EXECUTED under a timeout | Hidden tests with `FAIL got=... want=...` feedback (opt-in, not a security sandbox) |
+
+## Measured results (honest)
+
+A few headline findings from [BENCHMARKS.md](BENCHMARKS.md) — every number
+ships with seed, n, model and hardware:
+
+- **Strategies pay off when the model is weak enough to fail.** On a genuinely
+  weak local model (llama3.2:1b), single-shot fails 50-67% of tasks and
+  feedback-driven repair recovers failures: react 0.34 → reflexion 0.53 on the
+  hard suites (**McNemar p = 0.041**, n=64, combined across two independent
+  runs) — **never worse** (b01 = 0), 12/21 recoveries.
+- **Resampling without feedback adds nothing.** Best-of-N ties the plain
+  baseline exactly (p = 1.0) — consistent with the literature.
+- **On a frontier model, everything is easy.** DeepSeek V4 Flash solves 100% of
+  the real, hard-real, hard-tuned and code suites single-shot — an honest
+  negative result: the strategies add no measurable gain on tasks this model
+  already solves. The value shows up in open-ended questions (synthesized
+  answers) and with weaker/cheaper model tiers.
+- **Judge calibration matters.** An uncalibrated judge scores everything 10/10;
+  the calibrated 0-10 judge is what makes strategies visibly differ.
+
+Full details, including negative results and experimental noise studies, are in
+[BENCHMARKS.md](BENCHMARKS.md); known limitations are in
+[LIMITATIONS.md](LIMITATIONS.md).
+
+## Project structure
 
 ```text
-dse/
-├── config.py          # EngineConfig, feature flags, experiment registry
-├── llm.py             # LLM protocol + calibrated MockLLM
-├── providers.py       # OpenAI-compatible client (DeepSeek/Ollama/OpenAI/GitHub)
-├── environment.py     # Task model, deterministic catalog, ACI surface
-├── verifier.py        # exact / test / LLM-judge / self-consistency + aggregate
-├── router.py          # confidence-based model escalation
-├── memory.py          # rolling window + summary + episodic reflections
-├── feedback.py        # compiler feedback loop (build→test→lint→sec→perf)
-├── agent.py           # Agent protocol + BaseAgent plumbing
-├── strategies/        # react, best_of_n, reflexion, self_refine, tree_search,
-│                      # escalating, escalating_per_step, adaptive
-├── orchestration.py   # MoA-lite (flag: multi_agent)
-├── ask.py             # interactive Q&A + sessions + stats (terminal)
-├── chat.py            # local Grok-style chat UI (buttons, SSE, zero deps)
-├── ui.py              # colors, tables, progress bars (TTY-aware)
-├── freeform.py        # PromptTask + LLM judge for free-form Q&A
-├── factory.py         # one-call stack assembly (config→agents)
-└── benchmarks/        # harness + multi-seed + CLI + JSON records
+deepseek_engine/
+├── dse/
+│   ├── config.py          # EngineConfig, feature flags, experiment registry
+│   ├── llm.py             # LLM protocol + calibrated MockLLM
+│   ├── providers.py       # OpenAI-compatible client (DeepSeek/Ollama/OpenAI/GitHub)
+│   ├── environment.py     # Task model, deterministic catalog, ACI surface
+│   ├── verifier.py        # exact / test / LLM-judge / self-consistency + aggregate
+│   ├── router.py          # confidence-based model escalation
+│   ├── memory.py          # rolling window + summary + episodic reflections
+│   ├── feedback.py        # compiler feedback loop (build→test→lint→sec→perf)
+│   ├── agent.py           # Agent protocol + BaseAgent plumbing
+│   ├── strategies/        # react, best_of_n, reflexion, self_refine, tree_search,
+│   │                      # escalating, escalating_per_step, adaptive
+│   ├── orchestration.py   # MoA-lite (flag: multi_agent)
+│   ├── ask.py             # interactive Q&A + sessions + stats (terminal)
+│   ├── chat.py            # local chat UI server (SSE, zero deps)
+│   ├── chat_page.html     # the entire UI, editable without touching Python
+│   ├── ui.py              # colors, tables, progress bars (TTY-aware)
+│   ├── freeform.py        # PromptTask + LLM judge for free-form Q&A
+│   ├── factory.py         # one-call stack assembly (config→agents)
+│   ├── realtasks.py / hardtasks.py / codetasks.py   # benchmark task banks
+│   └── benchmarks/        # harness + multi-seed + CLI + JSON records
+├── tests/                 # pytest suite (124 tests)
+├── docs/                  # screenshots
+├── BENCHMARKS.md          # measured results incl. negatives
+├── ARCHITECTURE.md        # design contract
+├── LIMITATIONS.md         # honest limits
+├── RESEARCH.md            # evidence base + decision trace
+└── README.md
 ```
 
 ## Adding a strategy
@@ -289,10 +329,66 @@ All experimental techniques are gated:
 | `llm_judge` | off | experimental (noisy value function) |
 | `multi_agent` | off | experimental (cost-heavy; see BENCHMARKS §3.5) |
 
-## Honesty rules (from the brief)
+## Documentation
 
-- No "better" / "smarter" / "more accurate" without harness numbers.
-- Every reported number ships with hardware, models, seed, n, and CIs.
-- Known limitations are listed in [LIMITATIONS.md](LIMITATIONS.md).
-- Experiments that do not beat the baseline are removed or flagged, never
-  silently kept.
+- [ARCHITECTURE.md](ARCHITECTURE.md) — design contract and module map
+- [BENCHMARKS.md](BENCHMARKS.md) — measured results, methodology, negative results
+- [LIMITATIONS.md](LIMITATIONS.md) — honest limits and known quirks
+- [RESEARCH.md](RESEARCH.md) — evidence base, papers, and decision trace
+
+## FAQ
+
+**Does Nori need an API key to start?**
+No. You can run it against local Ollama for free, or paste a key in Settings
+whenever you like. The UI opens with no key at all.
+
+**Where is my data stored?**
+Everything stays on your machine — questions and answers in local
+`sessions/*.jsonl` files, your key in `settings.json` (or your `.env`). Nothing
+is sent anywhere except to the model provider you configured.
+
+**Why does an answer sometimes take ~30-45 seconds?**
+Nori runs several strategies in parallel, then a judge and a synthesizer. You
+watch the real reasoning stream in live, so you see exactly what it's doing.
+Dev mode and shorter questions are faster.
+
+**Can I use my own model / endpoint?**
+Yes. Any OpenAI-compatible endpoint works via the base-URL override
+(`DSE_PROVIDER_URL` or the Settings panel).
+
+**Is the `code` benchmark a sandbox?**
+No — it executes generated code locally under a timeout in a temp directory.
+Fine for a single-user machine; not an OS-level security boundary. See
+[LIMITATIONS.md](LIMITATIONS.md).
+
+## Roadmap
+
+- [x] Multi-strategy engine with evidence-based benchmarking
+- [x] Local chat UI with live thinking + synthesized best-of-all answers
+- [x] Bring-your-own-key settings with hot-swap
+- [ ] Hosted demo (sandboxed) so people can try it without installing
+- [ ] User accounts + ratings synced across devices
+- [ ] Plugin strategy packs (share your own strategy recipes)
+- [ ] Mobile-friendly layout
+
+## Contributing
+
+Contributions are welcome. The core rules are the same ones the project runs
+on:
+
+- **Never claim an improvement without harness numbers.** Add or extend a
+  benchmark and show the result.
+- **Keep the runtime dependency-free** — stdlib only.
+- **Keep experiments behind feature flags** with an explicit hypothesis and a
+  rollback condition.
+- **Keep it deterministic** — tests and benchmarks must be reproducible.
+- Report honest negative results; they are as valuable as wins.
+
+1. Fork the repo
+2. Create a feature branch
+3. Add a test for your change (124 and counting)
+4. Open a pull request
+
+## License
+
+[MIT](LICENSE)
