@@ -1,0 +1,197 @@
+{
+  "metadata": {
+    "seed": 0,
+    "seeds": [
+      0
+    ],
+    "provider": "ollama",
+    "engine_config": {
+      "max_trials": 3,
+      "max_search_nodes": 64,
+      "multi_agent_proposers": 3,
+      "flags": {
+        "adaptive_compute": true,
+        "self_consistency": true,
+        "llm_judge": false,
+        "multi_agent": false,
+        "search_reflection": true
+      }
+    },
+    "models": {
+      "cheap": {
+        "name": "cheap",
+        "cost_per_1k_in": 0.00027,
+        "cost_per_1k_out": 0.0011,
+        "step_accuracy": 0.5,
+        "judge_accuracy": 0.8,
+        "provider_model": "llama3.2:1b"
+      },
+      "expensive": {
+        "name": "expensive",
+        "cost_per_1k_in": 0.00055,
+        "cost_per_1k_out": 0.00219,
+        "step_accuracy": 0.5,
+        "judge_accuracy": 0.8,
+        "provider_model": "llama3.2:1b"
+      }
+    },
+    "hardware": "Windows AMD64 (python 3.14.4)",
+    "elapsed_s": 74.702,
+    "suite": "hard-real",
+    "paired": false
+  },
+  "summaries": {
+    "react": {
+      "n": 12,
+      "success_rate": 0.3333,
+      "mean_latency_s": 0.5873,
+      "median_latency_s": 0.6234,
+      "p90_latency_s": 0.8894,
+      "mean_tokens_in": 78.4,
+      "mean_tokens_out": 141.3,
+      "mean_tokens_total": 219.8,
+      "mean_cost_usd": 0.000177,
+      "mean_attempts": 1.0
+    },
+    "best_of_n": {
+      "n": 12,
+      "success_rate": 0.3333,
+      "mean_latency_s": 1.9598,
+      "median_latency_s": 1.8243,
+      "p90_latency_s": 2.7757,
+      "mean_tokens_in": 235.2,
+      "mean_tokens_out": 496.8,
+      "mean_tokens_total": 732.1,
+      "mean_cost_usd": 0.00061,
+      "mean_attempts": 3.0
+    },
+    "reflexion": {
+      "n": 12,
+      "success_rate": 0.6667,
+      "mean_latency_s": 0.9411,
+      "median_latency_s": 0.8358,
+      "p90_latency_s": 1.7054,
+      "mean_tokens_in": 197.8,
+      "mean_tokens_out": 217.9,
+      "mean_tokens_total": 415.8,
+      "mean_cost_usd": 0.000293,
+      "mean_attempts": 2.0
+    },
+    "self_refine": {
+      "n": 12,
+      "success_rate": 0.4167,
+      "mean_latency_s": 1.6983,
+      "median_latency_s": 0.8508,
+      "p90_latency_s": 4.1229,
+      "mean_tokens_in": 377.9,
+      "mean_tokens_out": 422.2,
+      "mean_tokens_total": 800.2,
+      "mean_cost_usd": 0.000567,
+      "mean_attempts": 2.25
+    },
+    "escalating": {
+      "n": 12,
+      "success_rate": 0.3333,
+      "mean_latency_s": 1.0373,
+      "median_latency_s": 0.9037,
+      "p90_latency_s": 1.7875,
+      "mean_tokens_in": 130.7,
+      "mean_tokens_out": 259.6,
+      "mean_tokens_total": 390.2,
+      "mean_cost_usd": 0.000464,
+      "mean_attempts": 1.67
+    }
+  },
+  "comparisons": [
+    {
+      "A": "react",
+      "B": "best_of_n",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "reflexion",
+      "b01": 0,
+      "b10": 4,
+      "chi2": 2.25,
+      "p_value": 0.13361440253771617,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "self_refine",
+      "b01": 0,
+      "b10": 1,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "reflexion",
+      "b01": 0,
+      "b10": 4,
+      "chi2": 2.25,
+      "p_value": 0.13361440253771617,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "self_refine",
+      "b01": 0,
+      "b10": 1,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "reflexion",
+      "B": "self_refine",
+      "b01": 3,
+      "b10": 0,
+      "chi2": 1.3333333333333333,
+      "p_value": 0.2482130789899235,
+      "significant": false
+    },
+    {
+      "A": "reflexion",
+      "B": "escalating",
+      "b01": 4,
+      "b10": 0,
+      "chi2": 2.25,
+      "p_value": 0.13361440253771617,
+      "significant": false
+    },
+    {
+      "A": "self_refine",
+      "B": "escalating",
+      "b01": 1,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    }
+  ]
+}

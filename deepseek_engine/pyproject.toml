@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deepseek-engine"
+version = "0.1.0"
+description = "Nori - evidence-driven agent orchestration with a bring-your-own-key chat UI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+dse-chat = "dse.chat:main"
+dse-ask = "dse.ask:main"
+dse-bench = "dse.benchmarks.run_benchmark:main"
+
+[tool.setuptools.packages.find]
+include = ["dse*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# only collect classes whose name ends in "Tests" (avoids picking up the
+# `TestVerifier` verifier implementation class as a test class)
+python_classes = ["*Tests"]

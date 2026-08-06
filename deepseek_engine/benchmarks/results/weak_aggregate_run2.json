@@ -1,0 +1,310 @@
+{
+ "code-fizzbuzz": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "code-compress": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": true,
+  "escalating": false
+ },
+ "code-palindrome": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "code-two-sum": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "code-reverse-words": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "code-longest-substring": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "code-min-coins": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "code-binary-search": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-math-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-math-002": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard-math-003": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard-math-004": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-math-005": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-code-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-code-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": false
+ },
+ "hard-code-003": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-logic-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard-logic-002": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard-logic-003": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard-chain-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-math-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-math-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-math-003": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard2-math-004": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard2-math-005": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-logic-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-logic-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-logic-003": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-code-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-code-002": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "hard2-chain-001": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "hard2-chain-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "math-001": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "math-002": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "math-003": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "math-004": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "math-005": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "logic-001": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "logic-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": false,
+  "self_refine": false,
+  "escalating": false
+ },
+ "logic-003": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "logic-004": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": false
+ },
+ "code-001": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ },
+ "code-002": {
+  "react": false,
+  "best_of_n": false,
+  "reflexion": true,
+  "self_refine": false,
+  "escalating": false
+ },
+ "code-003": {
+  "react": true,
+  "best_of_n": true,
+  "reflexion": true,
+  "self_refine": true,
+  "escalating": true
+ }
+}

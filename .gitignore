@@ -1,0 +1,32 @@
+# ---- Secrets (never commit) ----
+.env
+.env.*
+!.env.example
+settings.json
+
+# ---- Local user data ----
+sessions/
+*.jsonl
+
+# ---- Internal governance / personal docs (kept local only) ----
+MASTER_PROJECT_DOC.md
+AGENTS.md
+DeepSeek_Master_Research_Implementation_Brief.md
+
+# ---- Internal experiment scripts ----
+deepseek_engine/_dbg_*.py
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# ---- Editors / OS ----
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,197 @@
+{
+  "metadata": {
+    "seed": 0,
+    "seeds": [
+      0
+    ],
+    "provider": "deepseek",
+    "engine_config": {
+      "max_trials": 3,
+      "max_search_nodes": 64,
+      "multi_agent_proposers": 3,
+      "flags": {
+        "adaptive_compute": true,
+        "self_consistency": true,
+        "llm_judge": false,
+        "multi_agent": false,
+        "search_reflection": true
+      }
+    },
+    "models": {
+      "cheap": {
+        "name": "cheap",
+        "cost_per_1k_in": 0.00027,
+        "cost_per_1k_out": 0.0011,
+        "step_accuracy": 0.5,
+        "judge_accuracy": 0.8,
+        "provider_model": "deepseek-v4-flash"
+      },
+      "expensive": {
+        "name": "expensive",
+        "cost_per_1k_in": 0.00055,
+        "cost_per_1k_out": 0.00219,
+        "step_accuracy": 0.5,
+        "judge_accuracy": 0.8,
+        "provider_model": "deepseek-v4-flash"
+      }
+    },
+    "hardware": "Windows AMD64 (python 3.14.4)",
+    "elapsed_s": 183.72,
+    "suite": "hard-tuned",
+    "paired": false
+  },
+  "summaries": {
+    "react": {
+      "n": 12,
+      "success_rate": 1.0,
+      "mean_latency_s": 2.245,
+      "median_latency_s": 2.0084,
+      "p90_latency_s": 3.0411,
+      "mean_tokens_in": 132.2,
+      "mean_tokens_out": 127.8,
+      "mean_tokens_total": 259.9,
+      "mean_cost_usd": 0.000176,
+      "mean_attempts": 1.0
+    },
+    "best_of_n": {
+      "n": 12,
+      "success_rate": 1.0,
+      "mean_latency_s": 6.5071,
+      "median_latency_s": 6.122,
+      "p90_latency_s": 8.8485,
+      "mean_tokens_in": 396.5,
+      "mean_tokens_out": 376.8,
+      "mean_tokens_total": 773.2,
+      "mean_cost_usd": 0.000521,
+      "mean_attempts": 3.0
+    },
+    "reflexion": {
+      "n": 12,
+      "success_rate": 1.0,
+      "mean_latency_s": 2.2516,
+      "median_latency_s": 2.0625,
+      "p90_latency_s": 2.9838,
+      "mean_tokens_in": 132.2,
+      "mean_tokens_out": 121.5,
+      "mean_tokens_total": 253.7,
+      "mean_cost_usd": 0.000169,
+      "mean_attempts": 1.0
+    },
+    "self_refine": {
+      "n": 12,
+      "success_rate": 1.0,
+      "mean_latency_s": 2.2062,
+      "median_latency_s": 2.1461,
+      "p90_latency_s": 3.058,
+      "mean_tokens_in": 132.2,
+      "mean_tokens_out": 122.3,
+      "mean_tokens_total": 254.5,
+      "mean_cost_usd": 0.00017,
+      "mean_attempts": 1.0
+    },
+    "escalating": {
+      "n": 12,
+      "success_rate": 1.0,
+      "mean_latency_s": 2.0992,
+      "median_latency_s": 1.8821,
+      "p90_latency_s": 2.8147,
+      "mean_tokens_in": 132.2,
+      "mean_tokens_out": 128.5,
+      "mean_tokens_total": 260.7,
+      "mean_cost_usd": 0.000177,
+      "mean_attempts": 1.0
+    }
+  },
+  "comparisons": [
+    {
+      "A": "react",
+      "B": "best_of_n",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "reflexion",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "self_refine",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "react",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "reflexion",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "self_refine",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "best_of_n",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "reflexion",
+      "B": "self_refine",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "reflexion",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "A": "self_refine",
+      "B": "escalating",
+      "b01": 0,
+      "b10": 0,
+      "chi2": 0.0,
+      "p_value": 1.0,
+      "significant": false
+    }
+  ]
+}
