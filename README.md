@@ -2,13 +2,13 @@
 
 **Ask once. Get the best answer — with the thinking shown.**
 
-Nori is an evidence-driven AI answer engine with a polished, bring-your-own-key
+nori is an evidence-driven AI answer engine with a polished, bring-your-own-key
 chat UI. Instead of one blind guess, it runs several strategies in parallel,
 streams each model's real chain-of-thought live, ranks the results, and then
 **synthesizes the best parts of every candidate into a single final reply** —
 so the answer you actually read is better than any single attempt.
 
-![Nori chat UI](deepseek_engine/docs/nori-screenshot.png)
+![nori chat UI](deepseek_engine/docs/nori-screenshot.png)
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](deepseek_engine/LICENSE)
