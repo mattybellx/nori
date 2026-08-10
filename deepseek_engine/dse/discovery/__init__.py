@@ -33,6 +33,21 @@ from .evaluate import (
 )
 from .executor import ArchExecutor, ArchRunRecord, NodeEvent
 from .graph import ArchEdge, ArchGraph, ArchNode, novelty_against, structural_similarity
+from .mutations import (
+    append_verify,
+    branch,
+    delete_node,
+    duplicate_parallel,
+    duplicate_sequential,
+    gather_join,
+    insert_after,
+    insert_before,
+    insert_verify,
+    mutation_operators,
+    random_mutation,
+    substitute,
+    swap_primitives,
+)
 from .primitives import (
     ExecutionContext,
     NodeOutput,
@@ -67,6 +82,10 @@ __all__ = [
     "CompileError", "compile_graph", "validate",
     "ExecutionContext", "NodeOutput", "Primitive",
     "register", "registered_names",
+    "insert_before", "insert_after", "insert_verify", "append_verify",
+    "delete_node", "substitute", "swap_primitives",
+    "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
+    "random_mutation", "mutation_operators",
     "novelty_against", "structural_similarity",
     "react_graph", "best_of_n_graph", "reflexion_graph", "self_refine_graph",
     "tree_search_graph", "escalating_graph", "adaptive_graph", "multi_agent_graph",

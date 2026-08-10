@@ -95,13 +95,49 @@ mock hierarchy — the graphs reproduce reality.
 
 Verified: **210 tests passing** (8 new in `tests/test_discovery_eval.py`).
 
+## What Phase 3 added (2026-08-11, DONE — 16 tests)
+
+`dse/discovery/mutations.py` — candidate generation (spec §7). Every operator
+returns a NEW graph (architectures are immutable — genealogy records parents,
+§29) and the Phase-3 gate is that every mutation COMPILES:
+
+- **insertion**: `insert_before` / `insert_after` (+ `insert_verify` /
+  `append_verify` conveniences — the spec's canonical `A→B→C` →
+  `A→Verify→B→C`)
+- **deletion**: `delete_node` splices a stage out (bypass in→out); multi-entry
+  semantics keep the result valid (a target left with no in-edges becomes an
+  implicit source)
+- **substitution**: `substitute` replaces a primitive (`MCTS → beam search`)
+- **reordering**: `swap_primitives` swaps two operations in place
+- **duplication**: `duplicate_parallel` (second reasoning path) and
+  `duplicate_sequential` (repeat a stage)
+- **branching**: `branch(node, n)` — n parallel copies
+- **merging**: `gather_join(target)` — collects multiple in-edges into a list
+  before the target
+- **random generation**: `random_mutation(graph, rng)` picks a random
+  operator, keeps only mutations that COMPILE, and renames the candidate to a
+  **deterministic unique id** (`<parent>+<op>-<digest>`) so benchmark rows and
+  registry entries never collide (found the collision the hard way in the
+  demo: a child sharing its parent's name overwrote the parent's benchmark
+  row).
+
+Verified: every operator compiles on the baselines; mutations never modify the
+source graph (immutability test); `random_mutation` is deterministic under a
+seeded RNG. Demo: react+append_verify / best_of_n+gather_join /
+reflexion+duplicate_sequential / … all compile; benchmarking a substitute
+candidate head-to-head against its parent shows the parent at its known 16.7%
+and the (degenerate) candidate at 0% — precisely the signal Phase 4's filter
+will use to discard bad candidates.
+
+**226 tests passing** (16 new in `tests/test_discovery_mutations.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
 |---|---|---|---|
 | **1 ✅** | Executable graphs, primitives, compiler, executor, registry, baselines | strategies, guards, verifiers, harness | 21 tests |
 | **2 ✅** | Validate + head-to-head the baseline graphs (Phase-2 gate: graph ≡ strategy) | `run_benchmark`, `run_never_worse` | baselines match the strategy results they wrap (8 equivalence tests) |
-| 3 | Candidate generation: mutation/insertion/deletion/substitution/reordering/duplication | `ArchGraph` + registry | each mutation compiles; graph-level unit tests |
+| **3 ✅** | Mutation operators: insertion/deletion/substitution/reordering/duplication/branching/merging + compile-gated random mutation | `ArchGraph` + registry | each mutation compiles (16 tests) |
 | 4 | Discovery loop v0: population + beam of candidates, fitness from `ArchRunRecord`, independent-judge gate, never-worse promotion gate | registry, `harness` stats | a discovered candidate can beat a baseline on held-out mock tasks |
 | 5 | Evolutionary search: selection, crossover, novelty preservation, retirement | Phase 4 loop | improvement survives bootstrap CI + sign test vs baselines |
 | 6 | Adaptive routing: learn task-class → architecture via the profiler + bandit/UCB | `ProblemProfiler` (new) + Phase 5 | routing beats any single fixed architecture on held-out tasks |
