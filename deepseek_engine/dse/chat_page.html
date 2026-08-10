@@ -70,16 +70,36 @@
   .hist-item:hover{background:var(--chip);color:var(--text)}
   .hist-item.active{background:var(--chip);color:var(--text)}
 
-  /* ---------- insights ---------- */
-  .insights{flex:none;border-top:1px solid var(--border);padding:10px 2px 2px;display:flex;flex-direction:column;gap:6px}
-  .insights .row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:0 6px}
-  .insights .row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
-  .insights .row .up{color:var(--good)} .insights .row .down{color:var(--bad)}
-  .insights .mini{font-size:11px;color:var(--muted);padding:0 6px;line-height:1.5}
-  .insights .mini b{color:var(--text);font-weight:600}
-  .insights .refresh{background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;
-                     padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:var(--font);font-weight:600}
-  .insights .refresh:hover{border-color:var(--accent);color:var(--text)}
+  /* ---------- insights (now lives inside Settings) ---------- */
+  #insightsBody{display:flex;flex-direction:column;gap:2px}
+  #insightsBody .row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted);
+                     padding:6px 4px;border-bottom:1px solid var(--border)}
+  #insightsBody .row:last-child{border-bottom:none}
+  #insightsBody .row b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+  #insightsBody .row .up{color:var(--good)} #insightsBody .row .down{color:var(--bad)}
+  #insightsBody .mini{font-size:12px;color:var(--muted);line-height:1.5}
+  #insightsBody .mini b{color:var(--text);font-weight:600}
+  #insightsBody .refresh{background:var(--chip);border:1px solid var(--border);color:var(--muted);border-radius:9px;
+                         padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--font);font-weight:600}
+  #insightsBody .refresh:hover{border-color:var(--accent);color:var(--text)}
+
+  /* ---------- account / google sign-in ---------- */
+  #authBox{display:flex;flex-direction:column;gap:10px}
+  .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+              background:#fff;color:#333;border:1px solid var(--border);border-radius:10px;
+              padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);
+              box-shadow:0 1px 3px rgba(0,0,0,.12);transition:box-shadow .15s,transform .15s}
+  .google-btn:hover{box-shadow:0 2px 8px rgba(0,0,0,.2);transform:translateY(-1px)}
+  .google-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
+  .google-btn .glogo{width:18px;height:18px;flex:none}
+  .auth-signed{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 2px}
+  .auth-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+               display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex:none}
+  .auth-email{font-weight:600;color:var(--text);font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .auth-actions{display:flex;gap:8px;margin-left:auto}
+  .auth-note{font-size:12px;color:var(--muted);line-height:1.5}
+  .auth-note.err{color:var(--bad)}
+  .auth-note.ok{color:var(--good)}
 
   /* ---------- main ---------- */
   .main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;z-index:1;background:transparent}
@@ -442,11 +462,6 @@
     <button class="newchat" id="newChat">＋ New chat</button>
     <div class="side-label">History</div>
     <nav class="history" id="history"></nav>
-    <div class="insights">
-      <div class="side-label">Insights</div>
-      <div id="insightsBody"><div class="mini">No sessions yet.</div></div>
-      <button class="refresh" id="statsRefresh">↻ Refresh</button>
-    </div>
     <button class="sidebtn" id="settingsBtn">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Settings
@@ -536,6 +551,18 @@
         </div>
         <div class="set-status" id="setStatus"></div>
         <div class="set-hint">Leave the key blank to use your <code>.env</code> (<code>DSE_PROVIDER_KEY</code>). Keys are stored only in <code>settings.json</code> on this machine and never sent back to the page.</div>
+      </div>
+      <div class="set-group">
+        <div class="set-label">Account · save your chat history</div>
+        <div id="authBox"></div>
+        <div class="set-hint">Sign in with Google to back your chat history up to your private Drive (AppData) and restore it on any device. Requires Google OAuth credentials — see the README.</div>
+      </div>
+      <div class="set-group">
+        <div class="set-label">Insights</div>
+        <div id="insightsBody"><div class="mini">No sessions yet.</div></div>
+        <div class="set-actions">
+          <button class="refresh" id="statsRefresh">↻ Refresh</button>
+        </div>
       </div>
     </div>
   </div>
@@ -676,7 +703,7 @@ function loadSettings(){
     $('#setKey').placeholder=d.key_set?('Saved: '+d.key_masked):'API key (sk-…)';  
   }).catch(()=>{});
 }
-$('#settingsBtn').onclick=()=>{$('#settingsOverlay').classList.add('show');renderDetect();loadSettings();};
+$('#settingsBtn').onclick=()=>{$('#settingsOverlay').classList.add('show');renderDetect();loadSettings();loadAuth();};
 $('#settingsClose').onclick=()=>{$('#settingsOverlay').classList.remove('show');};
 $('#settingsOverlay').addEventListener('click',e=>{if(e.target.id==='settingsOverlay')e.currentTarget.classList.remove('show');});
 $('#setProvider').onchange=renderDetect;
@@ -701,6 +728,53 @@ $('#setSave').onclick=async ()=>{
   }catch(e){status.className='set-status err';status.textContent='✕ Could not reach the server';}
   btn.disabled=false;
 };
+/* ---------- google account ---------- */
+const GLOGOSVG='<svg class="glogo" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+function loadAuth(){
+  const box=$('#authBox');if(!box)return;
+  fetch('/auth/status').then(r=>r.json()).then(d=>{
+    if(d.signed_in){
+      const letter=(d.user||d.email||'?').charAt(0).toUpperCase();
+      box.innerHTML=
+        `<div class="auth-signed">
+           <span class="auth-avatar">${esc(letter)}</span>
+           <span class="auth-email">${esc(d.email||d.user||'Signed in')}</span>
+           <span class="auth-actions">
+             <button class="btn" id="authSync">↻ Sync now</button>
+             <button class="btn" id="authSignOut">Sign out</button>
+           </span>
+         </div>
+         <div class="auth-note" id="authNote">Chat history is backed up to your private Drive (AppData).</div>`;
+      $('#authSync').onclick=authSync;
+      $('#authSignOut').onclick=()=>{
+        fetch('/auth/signout',{method:'POST'}).then(()=>{loadAuth();});
+      };
+    }else if(d.configured){
+      box.innerHTML=
+        `<button class="google-btn" id="googleSignIn">${GLOGOSVG}Sign in with Google</button>
+         <div class="auth-note" id="authNote"></div>`;
+      $('#googleSignIn').onclick=()=>{window.location.href='/auth/google';};
+    }else{
+      box.innerHTML=
+        `<button class="google-btn" id="googleSignIn" disabled>${GLOGOSVG}Sign in with Google</button>
+         <div class="auth-note">Google sign-in isn't configured yet — add <code>google_client_id</code> and <code>google_client_secret</code> to <code>settings.json</code> and register the redirect URI (see README).</div>`;
+    }
+  }).catch(()=>{box.innerHTML='<div class="auth-note err">Could not check account state.</div>';});
+}
+function authSync(){
+  const note=$('#authNote');
+  if(note){note.className='auth-note';note.textContent='Syncing…';}
+  fetch('/auth/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+  .then(r=>r.json()).then(d=>{
+    if(note){
+      if(d.ok){
+        note.className='auth-note ok';
+        note.textContent=`✓ Pushed local history up · pulled ${d.pulled} remote record${d.pulled===1?'':'s'}${d.remote?' ('+d.remote+' on Drive)':''}.`;
+        loadHistory();loadStats();
+      }else{note.className='auth-note err';note.textContent='✕ '+(d.error||'Sync failed');}
+    }
+  }).catch(()=>{if(note){note.className='auth-note err';note.textContent='✕ Could not reach the server';}});
+}
 function revealWinnerOnly(){
   const g=seq;
   const cards=$('#cards-'+g);if(!cards)return;
@@ -1386,6 +1460,13 @@ $('#statsRefresh').onclick=loadStats;
 
 loadHistory();
 loadStats();
+// cloud restore: if signed in, pull remote history back and refresh
+fetch('/auth/status').then(r=>r.json()).then(d=>{
+  if(d.signed_in){
+    fetch('/auth/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+      .then(()=>{loadHistory();loadStats();}).catch(()=>{});
+  }
+}).catch(()=>{});
 </script>
 </body>
 </html>

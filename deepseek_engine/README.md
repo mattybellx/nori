@@ -48,6 +48,7 @@ so the answer you actually read is better than any single attempt.
 | Visible reasoning | The live workflow is an accordion: each step auto-opens as it runs and the model's text streams in **character by character** (no boxes — plain flowing text like Gemini/Grok), with a blinking caret while it's typing |
 | Best-of-all answers | The workflow merges the strongest parts of every candidate into one final answer, with a "which parts came from where" note |
 | Bring your own key | DeepSeek, OpenAI, GitHub Models or Ollama — pasted in Settings, connection-tested, stored locally, hot-swapped with no restart |
+| Cloud history | Sign in with Google to back your chat history up to your private Drive and restore it on any device |
 | Auto / Dev modes | Auto returns one clean synthesized answer; Dev shows every strategy card, scores and ratings |
 | Answer gallery | One **All** button opens every original candidate with Prev/Next + arrow-key stepping |
 | Zero dependencies | Entire runtime is Python's standard library — no third-party packages |
@@ -199,7 +200,38 @@ python -m dse.chat     # opens http://127.0.0.1:8787 in your browser
   Settings. nori tests the connection, auto-detects the provider, shows a
   badge, and hot-swaps the live engine with no restart.
 - Extra touches: Bionic reading toggle, light/dark themes, collapsible history
-  sidebar, and a live Insights panel (per-strategy scores + improvement trend).
+  sidebar, and an Insights panel (per-strategy scores + improvement trend) —
+  now inside Settings next to Google sign-in.
+
+### Google sign-in (cloud chat history)
+
+Sign in with Google from **Settings → Account** to back your chat history up
+and restore it on any device. History is stored in the app's **private Drive
+AppData folder** (invisible in your Drive — only nori can see it) and synced
+both ways:
+
+- **Sign in** → local sessions are pushed up immediately.
+- **On app load** → remote history is pulled down and merged (no duplicates).
+- **Sync now** → push local + pull remote on demand.
+
+To enable it you need a Google Cloud OAuth 2.0 client:
+
+1. In [Google Cloud Console](https://console.cloud.google.com) create an
+   **OAuth 2.0 Client ID** (type: Desktop app or Web application).
+2. Add the exact redirect URI `http://127.0.0.1:8787/auth/callback` under
+   **Authorized redirect URIs** (use your actual port if you changed it).
+3. Put the credentials in `settings.json`:
+
+   ```json
+   { "google_client_id": "...apps.googleusercontent.com",
+     "google_client_secret": "..." }
+   ```
+
+   or set `DSE_GOOGLE_CLIENT_ID` / `DSE_GOOGLE_CLIENT_SECRET` in your `.env`.
+4. Restart `python -m dse.chat`, open Settings → Account, and sign in.
+
+Tokens are stored locally in `google_auth.json` (git-ignored); nothing leaves
+your machine except the OAuth exchange and the encrypted history bundle.
 
 ### Terminal Q&A
 
@@ -388,7 +420,8 @@ Fine for a single-user machine; not an OS-level security boundary. See
 - [x] Local chat UI with live thinking + synthesized best-of-all answers
 - [x] Bring-your-own-key settings with hot-swap
 - [ ] Hosted demo (sandboxed) so people can try it without installing
-- [ ] User accounts + ratings synced across devices
+- [x] Google sign-in + cloud-synced chat history (Drive AppData)
+- [ ] Ratings synced across devices (part of cloud history)
 - [ ] Plugin strategy packs (share your own strategy recipes)
 - [ ] Mobile-friendly layout
 

@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 settings.json
+google_auth.json
 
 # ---- Local user data ----
 sessions/

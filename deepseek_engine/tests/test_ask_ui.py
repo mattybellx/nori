@@ -672,6 +672,47 @@ def test_pickbest_selection_guard_allows_strong_winner(tmp_path, monkeypatch):
         server.shutdown()
 
 
+def test_auth_endpoints_unconfigured(tmp_path, monkeypatch):
+    """/auth/status reports not-signed-in, /auth/google 400s without
+    credentials, and /auth/signout is a safe no-op."""
+    import urllib.error
+    import urllib.request
+
+    from dse import ask as ask_mod
+    from dse import chat as chat_mod
+
+    server, _captured = _scripted_server()
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        monkeypatch.setenv("DSE_PROVIDER_URL", base)
+        # isolate settings + token store so Google is definitely unconfigured
+        monkeypatch.setattr(chat_mod, "SETTINGS_FILE", tmp_path / "settings.json")
+        monkeypatch.setattr(chat_mod.google_auth, "AUTH_FILE", tmp_path / "google_auth.json")
+        pipeline = chat_mod.build_pipeline("deepseek", None, None)
+        monkeypatch.setattr(ask_mod, "SESSIONS_DIR", tmp_path / "sessions")
+
+        srv = chat_mod.ChatServer(("127.0.0.1", 0), chat_mod.ChatHandler, pipeline, threading.Lock())
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            root = f"http://127.0.0.1:{srv.server_address[1]}"
+            st = json.loads(urllib.request.urlopen(root + "/auth/status", timeout=10).read().decode())
+            assert st == {"signed_in": False, "configured": False}
+            try:
+                urllib.request.urlopen(root + "/auth/google", timeout=10)
+                raise AssertionError("expected /auth/google to 400 without credentials")
+            except urllib.error.HTTPError as exc:
+                assert exc.code == 400
+                assert "not configured" in exc.read().decode().lower()
+            req = urllib.request.Request(root + "/auth/signout", method="POST")
+            d = json.loads(urllib.request.urlopen(req, timeout=10).read().decode())
+            assert d["ok"] is True
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
 def test_stats_endpoint(tmp_path, monkeypatch):
     """GET /stats returns per-strategy aggregates + trend for the Insights panel."""
     import urllib.parse

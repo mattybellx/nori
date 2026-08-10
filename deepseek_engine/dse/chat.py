@@ -30,6 +30,7 @@ from .agent import Budget
 from .config import EngineConfig, default_flags
 from .env import load_env
 from .freeform import FreeFormJudge, PromptTask
+from . import google_auth
 from .guards import robust_score, selection_guard, synthesis_guard
 from .providers import PROVIDER_ENDPOINTS, make_provider
 from .strategies import BestOfNAgent, ReactAgent, ReflexionAgent, SelfRefineAgent
@@ -72,6 +73,8 @@ DEFAULT_SETTINGS = {
     "base_url": "",
     "model_cheap": "deepseek-v4-flash",
     "model_expensive": "deepseek-v4-flash",
+    "google_client_id": "",
+    "google_client_secret": "",
 }
 
 #: Settings file path; tests may monkeypatch this to a temp path.
@@ -162,6 +165,11 @@ class ChatHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _auth_redirect_uri(self) -> str:
+        """The callback URI registered in Google Cloud for this local server."""
+        _host, port = self.server.server_address[:2]
+        return f"http://127.0.0.1:{port}/auth/callback"
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/" or parsed.path == "/index.html":
@@ -207,8 +215,80 @@ class ChatHandler(BaseHTTPRequestHandler):
                 "key_masked": _mask_key(s.get("api_key", "")),
                 "model_cheap": s.get("model_cheap"),
                 "model_expensive": s.get("model_expensive"),
+                "google_configured": google_auth.configured(s),
                 "detected": detect_provider(s.get("base_url", ""), s.get("provider", "")),
             })
+            return
+        if parsed.path == "/auth/status":
+            auth = google_auth.load_auth()
+            settings = load_settings()
+            if not auth:
+                self._send_json(200, {
+                    "signed_in": False,
+                    "configured": google_auth.configured(settings),
+                })
+                return
+            email = auth.get("email") or ""
+            if not email:
+                email = google_auth.whoami(auth.get("access_token") or "").get("email") or ""
+            self._send_json(200, {
+                "signed_in": True,
+                "configured": True,
+                "email": email,
+                "user": auth.get("user") or "",
+            })
+            return
+        if parsed.path == "/auth/google":
+            settings = load_settings()
+            cid, _secret = google_auth.client_credentials(settings)
+            if not cid:
+                self._send_json(400, {"error": (
+                    "Google sign-in is not configured. Add google_client_id and "
+                    "google_client_secret to settings.json (or set "
+                    "DSE_GOOGLE_CLIENT_ID / DSE_GOOGLE_CLIENT_SECRET) and register "
+                    "this app's redirect URI in Google Cloud — see README.")})
+                return
+            url = google_auth.build_auth_url(cid, self._auth_redirect_uri())
+            self.send_response(302)
+            self.send_header("Location", url)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if parsed.path == "/auth/callback":
+            qs = parse_qs(parsed.query)
+            code = qs.get("code", [""])[0]
+            if not code:
+                self._send_json(400, {"error": "no code in callback"})
+                return
+            settings = load_settings()
+            cid, secret = google_auth.client_credentials(settings)
+            try:
+                tok = google_auth.exchange_code(code, cid, secret,
+                                                self._auth_redirect_uri())
+            except Exception as exc:
+                self._send_json(502, {"error": f"token exchange failed: {exc}"})
+                return
+            if "access_token" not in tok:
+                self._send_json(502, {"error": "token exchange failed: "
+                                                f"{tok.get('error_description') or tok}"})
+                return
+            info = google_auth.whoami(tok.get("access_token", ""))
+            tok["expires_at"] = datetime.now().timestamp() + int(tok.get("expires_in", 3600)) - 60
+            tok["email"] = info.get("email", "")
+            tok["user"] = info.get("name", "")
+            google_auth.save_auth(tok)
+            try:  # back up local history immediately after sign-in
+                google_auth.sync_push(tok.get("access_token", ""), ask_mod.SESSIONS_DIR)
+            except Exception:
+                pass
+            self.send_response(302)  # back to the app; page detects signed-in state
+            self.send_header("Location", "/")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if parsed.path == "/auth/signout":
+            google_auth.clear_auth()
+            self._send_json(200, {"ok": True})
             return
         self._send_json(404, {"error": "not found"})
 
@@ -237,6 +317,15 @@ class ChatHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
             self._pick_best(body.get("question", ""), body.get("strategies"))
+            return
+        if parsed.path == "/auth/sync":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+            self._auth_sync(body)
+            return
+        if parsed.path == "/auth/signout":
+            google_auth.clear_auth()
+            self._send_json(200, {"ok": True})
             return
         self._send_json(404, {"error": "not found"})
 
@@ -417,6 +506,33 @@ class ChatHandler(BaseHTTPRequestHandler):
                 "ok": False, "detected": detected, "provider": s["provider"],
                 "error": error, "message": f"Connection failed · {detected}",
             })
+
+    # -- Google account: sign-in state + cloud history sync ---------------
+    def _auth_sync(self, body: dict) -> None:
+        """Push local sessions to the user's private Drive AppData folder and
+        pull + merge any remote history back in (best-effort; fails cleanly)."""
+        auth = google_auth.load_auth()
+        settings = load_settings()
+        if not auth or not auth.get("refresh_token"):
+            self._send_json(401, {"error": "not signed in"})
+            return
+        try:
+            auth = google_auth.ensure_token(auth, settings)
+            token = auth.get("access_token", "")
+            pushed = google_auth.sync_push(token, ask_mod.SESSIONS_DIR)
+            remote = google_auth.sync_pull(token)
+            fresh = google_auth.merge_pull(remote.get("records", []),
+                                           ask_mod.load_records())
+            for rec in fresh:
+                ask_mod.save_records([rec])
+            self._send_json(200, {
+                "ok": True,
+                "pushed": bool(pushed.get("ok")),
+                "pulled": len(fresh),
+                "remote": len(remote.get("records", [])),
+            })
+        except Exception as exc:
+            self._send_json(502, {"error": f"sync failed: {str(exc)[:300]}"})
 
     # -- answer synthesizer: merge the best parts of all candidates --------
     def _synthesize(self, body: dict) -> None:
