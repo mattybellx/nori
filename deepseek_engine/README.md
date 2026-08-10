@@ -45,7 +45,7 @@ so the answer you actually read is better than any single attempt.
 
 | | |
 |---|---|
-| Visible reasoning | The live workflow is an accordion: click any step's chevron to collapse/expand it, and each strategy's real chain-of-thought streams in as it happens |
+| Visible reasoning | The live workflow is an accordion: each step auto-opens as it runs and the model's text streams in **character by character** (no boxes — plain flowing text like Gemini/Grok), with a blinking caret while it's typing |
 | Best-of-all answers | The workflow merges the strongest parts of every candidate into one final answer, with a "which parts came from where" note |
 | Bring your own key | DeepSeek, OpenAI, GitHub Models or Ollama — pasted in Settings, connection-tested, stored locally, hot-swapped with no restart |
 | Auto / Dev modes | Auto returns one clean synthesized answer; Dev shows every strategy card, scores and ratings |
@@ -58,11 +58,11 @@ so the answer you actually read is better than any single attempt.
 
 ## Why it's different
 
-- **Visible thinking** — the live workflow is an interactive accordion. Every
-  step is clickable: expand a strategy row to watch its real chain-of-thought
-  stream in live (spinner → green ✓ when it's done), collapse the whole
-  workflow section with one click. You see *how* it got there, not just the
-  answer.
+- **Visible thinking** — the live workflow is an interactive accordion that
+  auto-opens each step as it runs. The model's real chain-of-thought streams
+  into view **character by character** (blinking caret while it types), as
+  plain flowing text with no boxes — exactly like Gemini, Grok and ChatGPT.
+  Collapse any step with one click; spinner → green ✓ when it's done.
 - **Best-of-all answers** — the workflow merges the strongest parts of every
   candidate into one final synthesized reply (with a provenance note), instead
   of just returning whichever single answer scored highest.
