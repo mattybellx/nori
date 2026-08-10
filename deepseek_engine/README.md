@@ -76,6 +76,15 @@ so the answer you actually read is better than any single attempt.
   peer-reviewed research in [RESEARCH.md](RESEARCH.md); the design contract is
   [ARCHITECTURE.md](ARCHITECTURE.md); measured results — including honest
   negative results — are in [BENCHMARKS.md](BENCHMARKS.md).
+- **Architecture discovery (research direction)** — `dse/discovery/` turns
+  the orchestration into a controlled architecture-discovery laboratory:
+  inference architectures are **executable graphs** (not prompts) compiled,
+  executed and tracked with full provenance, with the existing strategies as
+  the initial baseline library. Phased roadmap in
+  [ARCHITECTURE_DISCOVERY.md](ARCHITECTURE_DISCOVERY.md). Phase 1 (the
+  substrate) is done and tested; discovery itself is an active research
+  program, gated by the same independent-judge + never-worse rules as
+  everything else.
 - **Deterministic by default** — a calibrated `MockLLM` makes tests and
   benchmarks reproducible, so strategy comparisons are causal, not anecdotal.
 - **Never worse, by construction** — a selection guard and a no-regression
