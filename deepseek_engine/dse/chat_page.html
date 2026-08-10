@@ -120,8 +120,9 @@
   .empty .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--accent);margin:0 3px;opacity:.5;
               animation:blink 1.2s infinite}
   .empty .dot:nth-child(2){animation-delay:.2s}.empty .dot:nth-child(3){animation-delay:.4s}
-  .you{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:16px 16px 4px 16px;
-       padding:12px 16px;align-self:flex-end;max-width:78%;font-size:14.5px;line-height:1.5;white-space:pre-wrap;box-shadow:var(--shadow)}
+  .you{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:18px 18px 6px 18px;
+       padding:12px 16px;align-self:flex-end;max-width:78%;font-size:14.5px;line-height:1.55;white-space:pre-wrap;
+       box-shadow:0 4px 18px var(--accent-soft)}
   .cards{display:flex;flex-direction:column;gap:12px}
 
   /* ---------- steps guide ---------- */
@@ -154,16 +155,16 @@
   .verdict .wk{color:var(--muted);margin-top:6px;font-size:12.5px}
 
   .card{position:relative;color:var(--text);
-        background:linear-gradient(180deg,color-mix(in srgb,var(--panel2) 94%,var(--accent-soft)) 0%,var(--panel2) 60%);
-        border:1px solid var(--border);border-radius:18px;
-        padding:18px 20px;box-shadow:0 2px 14px rgba(0,0,0,.16);
+        background:linear-gradient(180deg,color-mix(in srgb,var(--panel2) 96%,var(--accent-soft)) 0%,var(--panel2) 55%);
+        border:1px solid var(--border);border-radius:20px;
+        padding:20px 22px;box-shadow:0 2px 16px rgba(0,0,0,.14);
         transition:transform .18s, box-shadow .2s, border-color .2s;animation:fade .3s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--text) 16%,transparent)}
   .card.winner{border-color:color-mix(in srgb,var(--accent) 48%,transparent);animation:winGlow 2.4s ease-in-out infinite}
   @keyframes winGlow{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 34%,transparent),0 0 16px var(--accent-soft)}
                      50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 48%,transparent),0 0 32px var(--accent-soft)}}
-  .card .body{font-size:15px;line-height:1.72;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);
+  .card .body{font-size:15.5px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);
               font-weight:500;letter-spacing:.01em}
   .card .body b{color:var(--text);font-weight:700}
   .card .body h4{margin:.7em 0 .3em;font-size:15px;color:var(--text)}
@@ -171,8 +172,10 @@
                                      border-radius:6px;padding:1px 6px;font-size:13px;color:var(--accent2)}
   .card .body .code{display:block;padding:10px 12px;overflow-x:auto;margin:.4em 0}
   .card .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);
-              font-size:11.5px;margin-top:14px;font-variant-numeric:tabular-nums}
-  .card .meta .strat{color:var(--text);font-weight:700}
+              font-size:11.5px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);
+              font-variant-numeric:tabular-nums}
+  .card .meta .strat{display:inline-flex;align-items:center;background:var(--chip);border:1px solid var(--border);
+                     color:var(--text);padding:2px 10px;border-radius:999px;font-weight:700}
   .card .bestpill{display:none;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 36%,transparent);
                   color:var(--accent2);font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.04em}
   .card.winner .bestpill{display:inline-block}
@@ -352,7 +355,7 @@
   /* ---------- live workflow thinking ---------- */
   .work{margin:4px 0 0;display:flex;flex-direction:column;gap:8px}
   .workbar{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:600;
-           padding:9px 12px;border:1px solid var(--border);border-radius:12px;background:var(--panel2)}
+           padding:10px 14px;border:1px solid var(--border);border-radius:14px;background:var(--panel2)}
   .wspin{width:15px;height:15px;flex:none;border-radius:50%;
          border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);
          animation:spin .8s linear infinite}
@@ -365,7 +368,7 @@
               padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:var(--font);font-weight:600;white-space:nowrap}
   .worktoggle:hover{border-color:var(--accent);color:var(--text)}
   .worklog{display:none;max-height:300px;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);
-           border-radius:12px;padding:8px 10px;font-family:var(--font);font-size:13px;color:var(--muted);
+           border-radius:14px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--muted);
            line-height:1.6;flex-direction:column;gap:2px}
   .worklog.open{display:flex}
   .worklog .wl{display:flex;align-items:flex-start;gap:8px;border-radius:8px;padding:4px 6px;cursor:pointer;
@@ -741,34 +744,12 @@ function workInit(g){
   workLog(g,'Question received');
 }
 function workLog(g,line,opts){
-  if(!autoMode)return;
-  const log=$('#worklog-'+g);if(!log)return;
-  opts=opts||{};
-  const st=_wlState[g]||_wlInit(g);
-  const row=document.createElement('div');
-  row.className='wl'+(opts.section?' section':'');
-  if(opts.key)row.dataset.key=opts.key;
-  const chev=document.createElement('span');chev.className='wchev';chev.textContent='›';
-  const txt=document.createElement('span');txt.className='wltext';txt.textContent=line;
-  const status=document.createElement('span');status.className='wlstatus';
-  const det=document.createElement('div');det.className='wldet';
-  row.appendChild(chev);row.appendChild(txt);row.appendChild(status);row.appendChild(det);
-  let target=log;
-  if(!opts.section&&!opts.closeSection&&st.section)target=st.section;
-  target.appendChild(row);
-  if(opts.section)st.section=det;           // strategy rows nest inside this section
-  if(opts.closeSection)st.section=null;     // end the section
-  row.addEventListener('click',function(ev){
-    if(ev.target.closest('button'))return;
-    const open=det.classList.toggle('open');
-    row.classList.toggle('open',open);
-    chev.textContent=open?'▾':'›';
-    if(open){_wlFinishRow(row);log.scrollTop=log.scrollHeight;}
-  });
-  if(opts.key)st.rows[opts.key]=row;
-  log.scrollTop=log.scrollHeight;
-  const msg=$('#workmsg-'+g);if(msg)msg.textContent=line;
-  return row;
+  /* status line only — Gemini/Claude don't show process chatter ("Question
+     received", "All strategies done"...) as expandable steps, so generic
+     messages just update the workbar. Only strategy rows are expandable. */
+  if(!autoMode)return null;
+  const msg=$('#workmsg-'+g);if(msg&&line)msg.textContent=line;
+  return null;
 }
 function _wlOpen(row){
   if(!row)return;
@@ -780,15 +761,30 @@ function workStrategy(g,name){
   if(!autoMode)return null;
   let row=_wlRow(g,name);
   if(!row){
-    row=workLog(g,name+' — working…',{key:name});
-    if(!row)return null;
+    const log=$('#worklog-'+g);if(!log)return null;
+    const st=_wlState[g]||_wlInit(g);
+    row=document.createElement('div');
+    row.className='wl';
     row.dataset.strategy=name;
-    _wlState[g].rows[name]=row;
+    const chev=document.createElement('span');chev.className='wchev';chev.textContent='›';
+    const txt=document.createElement('span');txt.className='wltext';txt.textContent=name+' — working…';
+    const status=document.createElement('span');status.className='wlstatus';
+    const det=document.createElement('div');det.className='wldet';
+    row.appendChild(chev);row.appendChild(txt);row.appendChild(status);row.appendChild(det);
+    row.addEventListener('click',function(ev){
+      if(ev.target.closest('button'))return;
+      const open=det.classList.toggle('open');
+      row.classList.toggle('open',open);
+      chev.textContent=open?'▾':'›';
+      if(open){_wlFinishRow(row);log.scrollTop=log.scrollHeight;}
+    });
+    log.appendChild(row);
+    st.rows[name]=row;
+    log.scrollTop=log.scrollHeight;
   }
   const status=row.querySelector('.wlstatus');
   status.innerHTML='<span class="wlsp"></span>';
   _wlOpen(row);                       // live thinking is visible by default
-  if(_wlState[g].section){const sec=_wlState[g].section.closest('.wl');if(sec)_wlOpen(sec);}
   row.scrollIntoView({block:'nearest'});
   return row;
 }
@@ -1160,9 +1156,9 @@ function pickBest(fromLive){
   .then(r=>r.json()).then(d=>{
     winner=d.winner||null;crownWinner();
     lastWhy=(d.reason||'')+(d.weakness?(' Could improve: '+d.weakness):'');
-    if(autoMode)revealWinnerOnly();
+    if(autoMode&&!fromLive)revealWinnerOnly(); // history reload: show now
     if(autoMode){
-      if(fromLive)autoSynth(seq);
+      if(fromLive)autoSynth(seq);   // live: keep cards hidden until the merge finishes
       else{workLog(seq,'Best answer: '+(d.winner||'—'));workDone(seq);}
     }
     const cmp=$('#cmp-'+seq);if(cmp)cmp.disabled=!winner;
@@ -1186,8 +1182,9 @@ function autoSynth(g){
     body:JSON.stringify({question:qtext,winner:win,save_winner:true})})
   .then(r=>r.json()).then(d=>{
     if(d.ok&&d.answer)applySynthToWinner(g,win,d.answer,d.note||'');
+    revealWinnerOnly();   // the workflow is complete — now show the answer
     workDone(g);
-  }).catch(()=>workDone(g));
+  }).catch(()=>{revealWinnerOnly();workDone(g);});
 }
 function applySynthToWinner(g,win,answer,note){
   const c=document.querySelector('#cards-'+g+' .card[data-strategy="'+win+'"]');
