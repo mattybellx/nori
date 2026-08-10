@@ -228,7 +228,7 @@ def test_chat_server_endpoints(tmp_path, monkeypatch):
             port = srv.server_address[1]
             # page
             html = urllib.request.urlopen(f"http://127.0.0.1:{port}/").read().decode("utf-8")
-            assert "Nori" in html
+            assert "nori" in html
             # SSE ask stream
             url = f"http://127.0.0.1:{port}/ask?question=" + urllib.parse.quote("why is the sky blue?")
             body = urllib.request.urlopen(url, timeout=30).read().decode("utf-8")

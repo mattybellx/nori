@@ -296,7 +296,7 @@ def audit(path: Path) -> None:
 # CLI
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Nori - ask & audit")
+    parser = argparse.ArgumentParser(description="nori - ask & audit")
     parser.add_argument("--question", help="ask a single question and exit")
     parser.add_argument("--provider", default="deepseek",
                         choices=["deepseek", "ollama", "openai", "github"])
@@ -331,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     # -- interactive REPL ----------------------------------------------------
-    ui.section("Nori — Ask  (type 'quit', 'history', or 'help')")
+    ui.section("nori — Ask  (type 'quit', 'history', or 'help')")
     print(ui.dim("provider=") + ui.bold(args.provider) +
           ui.dim("  model=") + ui.bold(models["cheap"].provider_model) +
           ui.dim("  judge=") + ui.bold(models["expensive"].provider_model))

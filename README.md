@@ -79,7 +79,7 @@ so the answer you actually read is better than any single attempt.
 
 ## How it works
 
-For every question, Nori runs a small evidence-driven workflow:
+For every question, nori runs a small evidence-driven workflow:
 
 ```mermaid
 flowchart LR
@@ -195,7 +195,7 @@ python -m dse.chat     # opens http://127.0.0.1:8787 in your browser
 - **Dev mode**: switch in Settings to see all four strategy cards with scores,
   ratings and the manual "Pick best" flow.
 - **BYOK**: paste any DeepSeek / OpenAI / GitHub Models / Ollama key in
-  Settings. Nori tests the connection, auto-detects the provider, shows a
+  Settings. nori tests the connection, auto-detects the provider, shows a
   badge, and hot-swaps the live engine with no restart.
 - Extra touches: Bionic reading toggle, light/dark themes, collapsible history
   sidebar, and a live Insights panel (per-strategy scores + improvement trend).
@@ -240,7 +240,7 @@ stdlib-only client (`dse/providers.py`).
 | OpenAI | Yes | Standard OpenAI key |
 | GitHub Models | Yes (PAT) | Copilot-class models via the OpenAI-compatible endpoint |
 
-> **Honest note:** VS Code Copilot has no public third-party API, so Nori
+> **Honest note:** VS Code Copilot has no public third-party API, so nori
 > cannot call Copilot directly. GitHub Models is OpenAI-compatible and serves
 > Copilot-class models with a GitHub PAT — that is the supported path.
 
@@ -344,7 +344,7 @@ All experimental techniques are gated:
 
 ## FAQ
 
-**Does Nori need an API key to start?**
+**Does nori need an API key to start?**
 No. You can run it against local Ollama for free, or paste a key in Settings
 whenever you like. The UI opens with no key at all.
 
@@ -354,7 +354,7 @@ Everything stays on your machine — questions and answers in local
 `.env`). Nothing is sent anywhere except to the model provider you configured.
 
 **Why does an answer sometimes take ~30-45 seconds?**
-Nori runs several strategies in parallel, then a judge and a synthesizer. You
+nori runs several strategies in parallel, then a judge and a synthesizer. You
 watch the real reasoning stream in live, so you see exactly what it's doing.
 Dev mode and shorter questions are faster.
 

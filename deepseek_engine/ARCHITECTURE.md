@@ -1,4 +1,4 @@
-# Nori — Architecture
+# nori — Architecture
 
 This document specifies the module design of the engine and traces every decision
 to `RESEARCH.md`. It is the implementation contract.

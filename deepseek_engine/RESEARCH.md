@@ -1,4 +1,4 @@
-# Nori — Research Synthesis & Evidence Base
+# nori — Research Synthesis & Evidence Base
 
 > Per the Master Brief: *"Never assume an approach is best because it is common."*
 > This document records what was researched, what the evidence says, and why each

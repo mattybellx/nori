@@ -1,4 +1,4 @@
-"""Nori — local chat UI with buttons; a Grok-style front-end for the engine.
+"""nori — local chat UI with buttons; a Grok-style front-end for the engine.
 
 Zero dependencies: stdlib ``http.server`` + a single-page app loaded from
 ``chat_page.html`` (editable without touching Python). Open a browser tab, type
@@ -596,7 +596,7 @@ def build_pipeline(provider: str, model: str | None, judge_model: str | None,
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Nori - local chat UI")
+    parser = argparse.ArgumentParser(description="nori - local chat UI")
     parser.add_argument("--provider", default="deepseek",
                         choices=["deepseek", "ollama", "openai", "github"])
     parser.add_argument("--model", help="answer model (cheap tier)")
@@ -624,7 +624,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     url = f"http://127.0.0.1:{port}"
-    print(ui.ok(f"Nori running at {url}"))
+    print(ui.ok(f"nori running at {url}"))
     print(ui.dim(f"answer model={models['cheap'].provider_model}  "
                  f"judge model={models['expensive'].provider_model}"))
     print(ui.dim("press Ctrl+C to stop"))

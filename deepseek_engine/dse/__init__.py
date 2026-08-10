@@ -1,4 +1,4 @@
-"""Nori — an evidence-driven agent orchestration framework.
+"""nori — an evidence-driven agent orchestration framework.
 
 Design decisions are traced in RESEARCH.md / ARCHITECTURE.md. Every experimental
 capability sits behind a feature flag with an explicit hypothesis and rollback

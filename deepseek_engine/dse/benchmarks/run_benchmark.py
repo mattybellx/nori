@@ -88,7 +88,7 @@ def _fancy_comparisons(comparisons) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Nori benchmark runner")
+    parser = argparse.ArgumentParser(description="nori benchmark runner")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--seeds", type=int, default=1,
                         help="number of seeds to aggregate (mock provider only)")
