@@ -1,0 +1,387 @@
+{
+  "summary": {
+    "n": 32,
+    "provider": "deepseek",
+    "suite": "free",
+    "judge_samples": 3,
+    "judge_model": "self (same model as answers)",
+    "baseline_quality_avg": 8.031,
+    "winner_quality_avg": 8.531,
+    "final_quality_avg": 9.258,
+    "never_worse_judge": 0.969,
+    "never_worse_count": 31,
+    "sometimes_better": 10,
+    "wilcoxon_final_vs_baseline": {
+      "w": 71.0,
+      "p": 0.01123,
+      "n": 31
+    },
+    "wilcoxon_final_vs_winner": {
+      "w": 33.5,
+      "p": 0.039062,
+      "n": 31
+    },
+    "wilcoxon_winner_vs_baseline": {
+      "w": 54.5,
+      "p": 0.233398,
+      "n": 32
+    },
+    "selection_guard_fired": 0,
+    "synthesis_guard_fired": 8,
+    "elapsed_s": 4330.1
+  },
+  "rows": [
+    {
+      "question": "Explain how quantum entanglement works in simple terms.",
+      "winner_strategy": "react",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "synthesis 8.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What are the main pros and cons of remote work?",
+      "winner_strategy": "react",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 8.0 < winner 9.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "Explain the difference between machine learning and deep learning.",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.64) and score 10.0 >= winner 10.0"
+    },
+    {
+      "question": "How would you explain recursion to a five-year-old?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.41) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the key differences between HTTP/1.1 and HTTP/2?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded synthesis (overlap=0.37); judge score missing"
+    },
+    {
+      "question": "Compare solar power and wind power for powering a small town.",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 4.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.67) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "Explain compound interest to a teenager who wants to start saving.",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.65) and score 10.0 >= winner 10.0"
+    },
+    {
+      "question": "What causes inflation, and what are its main effects on everyday people?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 5.0,
+      "winner_quality": 9.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.55) and score 10.0 >= winner 10.0"
+    },
+    {
+      "question": "What are the best strategies for building a habit that actually sticks?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 8.0,
+      "guard": "grounded (overlap=0.41) and score 10.0 >= winner 8.0"
+    },
+    {
+      "question": "Explain the concept of a blockchain in plain language, and where it genuinely adds value.",
+      "winner_strategy": "self_refine",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What are the trade-offs between renting and buying a home for a young professional?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 3.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.35) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "How does a search engine decide which results to show first?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.48) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What makes a good apology, and why do most apologies fail?",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 7.0,
+      "winner_quality": 9.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.50) and score 10.0 >= winner 8.0"
+    },
+    {
+      "question": "Explain the difference between a physical therapist and a chiropractor for back pain.",
+      "winner_strategy": "react",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What should someone consider before switching careers in their thirties?",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.55) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "How do vaccines work, and why do some need boosters?",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.93) and score 10.0 >= winner 10.0"
+    },
+    {
+      "question": "What are the strongest arguments for and against nuclear power today?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 2.0,
+      "winner_quality": 9.0,
+      "final_quality": null,
+      "guard": "grounded synthesis (overlap=0.70); judge score missing"
+    },
+    {
+      "question": "Explain how a neural network learns, without using math.",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.50) and score 10.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the most important things to know before starting a small online business?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 8.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.44) and score 9.0 >= winner 8.0"
+    },
+    {
+      "question": "How would you explain the concept of opportunity cost to someone who hates economics?",
+      "winner_strategy": "reflexion",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What are the main differences between mediation and arbitration in a dispute?",
+      "winner_strategy": "react",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "Why do some people find it hard to sleep, and what actually helps?",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.48) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "Explain the pros and cons of open-source software versus proprietary software for a small company.",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 4.0,
+      "winner_quality": 4.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.33) and score 9.0 >= winner 8.0"
+    },
+    {
+      "question": "How does inflation affect someone's personal savings, and what can they do about it?",
+      "winner_strategy": "self_refine",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What is the best way to prepare for a job interview in a technical field?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.37) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "Explain the concept of a carbon footprint and whether individual actions matter.",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 8.0,
+      "winner_quality": 5.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.45) and score 10.0 >= winner 6.0"
+    },
+    {
+      "question": "What are the key considerations when choosing between a traditional car and an electric car in 2026?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 3.0,
+      "winner_quality": 3.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.34) and score 9.0 >= winner 3.0"
+    },
+    {
+      "question": "How would you explain the stock market to a complete beginner?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.52) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the trade-offs between eating organic and conventionally grown food?",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 8.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.61) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "Explain the difference between a manager and a leader, with examples.",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.53) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the main causes of climate change, and what are the most effective responses?",
+      "winner_strategy": "reflexion",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 9.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "How would you design a personal budget that you can actually stick to?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 3.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.29) and score 9.0 >= winner 4.0"
+    }
+  ]
+}

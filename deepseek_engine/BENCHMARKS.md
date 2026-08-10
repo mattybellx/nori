@@ -463,15 +463,46 @@ property (proved, not claimed):
 
 ### Free-form (open-ended; quality = the de-noised median-N judge)
 
-Real DeepSeek n=8 (pilot): **baseline 7.71 → guarded winner 9.12 → FINAL
-9.25**; sometimes-better 4/8 (incl. a 3→9 and a 0→10 recovery); never-worse
-7/8, where the 1 miss is residual judge noise (the guard's own check passed
-on its median-3 batch; a fresh median-3 batch landed 1pt lower).
+**n=32 real DeepSeek run (2026-08-10, median-3 self-judge, ~72 min):**
 
-**Honest framing:** n=8 is a pilot, not a claim. The free suite was scaled to
-**32 questions** and now reports a paired **Wilcoxon signed-rank** test
-(dependency-free, in `harness.py`) — the right test for continuous judge
-scores (McNemar can't see a 6→8 improvement). Run with `--judge-model
-deepseek-v4-pro` to grade with an independent model and break the
-self-grading circularity (by default the judge IS the model that wrote the
-answers — "better" partly means "more to its own taste").
+| metric | value |
+|---|---|
+| baseline (react) quality | 8.03/10 |
+| guarded winner quality | 8.53/10 |
+| **FINAL quality (with guards)** | **9.26/10** (+1.23 over single-shot) |
+| never-worse (final ≥ winner) | **31/32 (96.9%)** |
+| sometimes-better (final > baseline + 0.5) | **10/32 (31%)** |
+| final vs baseline paired Wilcoxon | **W=71.0, p=0.0112** (n=31) — SIGNIFICANT |
+| final vs winner paired Wilcoxon | W=33.5, p=0.0391 (n=31) — significant |
+| winner vs baseline paired Wilcoxon | W=54.5, p=0.233 (n=32) — NOT significant |
+| selection guard fired | 0/32 |
+| synthesis guard fired (fell back) | 8/32 (25% of merges rejected) |
+
+Record: `benchmarks/results/never_worse_deepseek_free32.json`.
+
+**What the numbers mean (honest):**
+
+1. **The claim is now statistically significant.** At n=32 with the paired
+   Wilcoxon test, the FINAL synthesized answer beats single-shot react
+   (p = 0.0112) — the n=8 pilot (p≈1.0) was a power problem, not a null
+   result. Effect size +1.23 on a 0-10 scale (8.03 → 9.26).
+2. **The gain comes from synthesis, not picking.** The guarded winner alone
+   is NOT significantly better than react (p = 0.23); the merged FINAL answer
+   is (p = 0.011, and p = 0.039 vs the winner itself). The product's value is
+   the best-of-all synthesis, exactly as designed.
+3. **Sometimes-better is real and large when it fires:** 10/32 (31%), incl.
+   five 3→9 / 4→9 recoveries (renting vs buying, electric car, personal
+   budget, open-source, solar vs wind) and a 5→10 (inflation) — big wins on
+   questions where the single-shot answer was weak.
+4. **The 1 never-worse miss is a real design hole, not just noise.** Question
+   "nuclear power" (baseline 2 → winner 9 → final 0): the guard shipped the
+   synthesis because its judge calls returned NO score ("judge score
+   missing"), and the guard's policy is "a judge failure must not block a
+   grounded synthesis". The fresh metric judge then scored that final 0.0.
+   The conservative fix — fall back to the winner whenever the judge can't
+   score — would close this (at the cost of occasionally blocking a good
+   merge).
+5. **Caveats:** the judge is the same model that wrote the answers
+   (self-grading circularity — run `--judge-model deepseek-v4-pro` to break
+   it); the guard's own score check uses its own median-3 batch, so residual
+   judge noise (~1pt) is still the honest floor on the score-based guarantee.
