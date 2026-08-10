@@ -90,6 +90,12 @@ from .registry import (
     SUPERSEDED,
     TERMINAL,
 )
+from .routing import (
+    TaskProfile,
+    UCRouter,
+    profile_task,
+    run_routing_experiment,
+)
 
 __all__ = [
     "ArchEdge", "ArchGraph", "ArchNode",
@@ -103,6 +109,7 @@ __all__ = [
     "discover", "promotion_gate", "split_tasks",
     "crossover", "crossover_children", "unique_child_name",
     "validate_statistical", "retire_unfit", "beam_score",
+    "TaskProfile", "UCRouter", "profile_task", "run_routing_experiment",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
