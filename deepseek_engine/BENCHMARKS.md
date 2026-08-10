@@ -508,3 +508,45 @@ Record: `benchmarks/results/never_worse_deepseek_free32.json`.
    (self-grading circularity — run `--judge-model deepseek-v4-pro` to break
    it); the guard's own score check uses its own median-3 batch, so residual
    judge noise (~1pt) is still the honest floor on the score-based guarantee.
+
+### Independent-judge replication — deepseek-v4-pro grades (2026-08-10, ~107 min)
+
+**n=32 real DeepSeek run, every answer graded by `deepseek-v4-pro` instead of
+the model that wrote it (breaks the self-grading circularity):**
+
+| metric | value |
+|---|---|
+| baseline (react) quality | 8.11/10 |
+| guarded winner quality | 8.87/10 |
+| FINAL quality (with guards) | 8.90/10 (+0.79 over single-shot) |
+| never-worse (final ≥ winner) | **28/32 (87.5%)** |
+| sometimes-better (final > baseline + 0.5) | 11/32 (34%) |
+| final vs baseline paired Wilcoxon | W=119.5, **p = 0.320** (n=26) — NOT significant |
+| final vs winner paired Wilcoxon | W=39.0, p = 0.281 (n=30) — NOT significant |
+| synthesis guard fired (fell back) | 8/32 |
+
+Record: `benchmarks/results/never_worse_deepseek_free32_projudge.json`
+(SUMMARY-ONLY — the CLI exited 1 after printing, before writing the JSON, so
+per-question rows were lost; the save was then moved to run FIRST so this
+can't happen again).
+
+**What this honestly means — the strongest negative result in the project:**
+
+1. **The significant self-judge result does NOT replicate under an
+   independent judge.** Self-judge: +1.23, p = 0.011. Independent judge:
+   +0.79, **p = 0.32** — the "sometimes better is real" claim is NOT
+   statistically supported when a different model grades. The direction is
+   still positive (8.11 → 8.90; 11/32 sometimes-better), but it's
+   suggestive, not proven.
+2. **Never-worse degrades from 31/32 to 28/32.** Four misses under pro. Part
+   of the guarantee's measured strength was judge-self-consistency — the
+   guard and the metric sharing one model's taste.
+3. **This validates the self-grading caveat we always flagged.** The honest
+   reading: the merged answer is probably a bit better (positive in both
+   runs), but the "statistically significant smarter answers" headline only
+   holds when the same model grades itself. That is exactly why an
+   independent judge matters, and why the claim must be downgraded.
+4. **Next step if we want a defensible claim:** more power (n=64+) and/or a
+   groundedness-weighted metric — the gap (self +1.23 vs pro +0.79) suggests
+   part of the self-judge gain was stylistic self-preference, not
+   substance.

@@ -416,6 +416,16 @@ def main() -> None:
     result = run(args.provider, args.suite, args.n_tasks, args.seed, args.max_steps,
                  judge_samples=args.judge_samples, judge_model=args.judge_model)
     s = result["summary"]
+    # persist the result IMMEDIATELY (before printing) so a late crash/kill
+    # can never lose a multi-hour run — learned the hard way when the
+    # independent-judge run exited 1 after printing but before writing.
+    if args.out:
+        try:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                json.dump(result, fh, ensure_ascii=False, indent=2)
+            print(f"OK wrote {args.out}")
+        except Exception as exc:  # pragma: no cover - filesystem edge
+            print(f"! could not write {args.out}: {exc}")
     print()
     ui.section("never-worse benchmark (n=%d, provider=%s, suite=%s, judge-samples=%d%s)" % (
         s["n"], s["provider"], s["suite"], args.judge_samples,
@@ -460,10 +470,6 @@ def main() -> None:
             ],
             header_style=ui.bold,
         ))
-    if args.out:
-        with open(args.out, "w", encoding="utf-8") as fh:
-            json.dump(result, fh, ensure_ascii=False, indent=2)
-        print(f"OK wrote {args.out}")
 
 
 if __name__ == "__main__":

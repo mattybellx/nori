@@ -1,0 +1,22 @@
+{
+  "summary": {
+    "n": 32,
+    "provider": "deepseek",
+    "suite": "free",
+    "judge_samples": 3,
+    "judge_model": "deepseek-v4-pro",
+    "baseline_quality_avg": 8.11,
+    "winner_quality_avg": 8.87,
+    "final_quality_avg": 8.9,
+    "never_worse_judge": 0.875,
+    "never_worse_count": 28,
+    "sometimes_better": 11,
+    "wilcoxon_final_vs_baseline": {"w": 119.5, "p": 0.319662, "n": 26},
+    "wilcoxon_final_vs_winner": {"w": 39.0, "p": 0.28125, "n": 30},
+    "selection_guard_fired": 0,
+    "synthesis_guard_fired": 8,
+    "elapsed_s": 6400.4
+  },
+  "_note": "SUMMARY-ONLY record. The CLI printed this table but its process exited with code 1 before writing the JSON, so row-level data (per-question scores) was lost. Reconstructed from the printed table. Re-run to capture per-question rows if needed.",
+  "_taken_from": "python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 32 --judge-samples 3 --judge-model deepseek-v4-pro"
+}
