@@ -373,7 +373,6 @@
   .worklog.open{display:flex}
   .worklog .wl{display:flex;align-items:flex-start;gap:8px;border-radius:8px;padding:4px 6px;cursor:pointer;
                transition:background .12s}
-  .worklog .wl:hover{background:color-mix(in srgb,var(--text) 6%,transparent)}
   .worklog .wl .wchev{flex:none;color:var(--accent2);font-size:11px;line-height:1.9;width:10px;
                       transition:transform .15s;font-family:var(--mono)}
   .worklog .wl.open>.wchev{transform:rotate(90deg)}
@@ -1052,17 +1051,17 @@ function userBubble(text){
   $('#empty')&&$('#empty').remove();
   seq+=1;
   col.insertAdjacentHTML('beforeend',
-    '<div class="you">'+esc(text)+'</div>'+
-    `<div class="cards${autoMode?' auto-hidden':''}" id="cards-${seq}"></div>`+
-    `<div class="arbiter${autoMode?' auto':''}" id="arb-${seq}">
-       <button class="primary" id="pick-${seq}" disabled>Pick best answer</button>
-       <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
-     </div>`+
+    '<div class="you">'+esc(text)+'</div>'+  // status + thinking sit ABOVE the answer
     (autoMode?`<div class="work" id="work-${seq}">
        <div class="workbar"><span class="wspin"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
        <span class="wprog"><i></i></span>
        <button class="worktoggle" id="worktoggle-${seq}">Show thinking</button></div>
-       <div class="worklog" id="worklog-${seq}"></div></div>`:''));
+       <div class="worklog" id="worklog-${seq}"></div></div>`:'')+
+    `<div class="cards${autoMode?' auto-hidden':''}" id="cards-${seq}"></div>`+
+    `<div class="arbiter${autoMode?' auto':''}" id="arb-${seq}">
+       <button class="primary" id="pick-${seq}" disabled>Pick best answer</button>
+       <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
+     </div>`);
   insertSteps();
 }
 function thinking(on){
@@ -1345,17 +1344,17 @@ function loadQuestion(text){
     clearChat();winner=null;
     seq+=1;
     col.insertAdjacentHTML('beforeend',
-      '<div class="you">'+esc(d.question||text)+'</div>'+
-      `<div class="cards${autoMode?' auto-hidden':''}" id="cards-${seq}"></div>`+
-      `<div class="arbiter${autoMode?' auto':''}" id="arb-${seq}">
-         <button class="primary" id="pick-${seq}" disabled>Pick best answer</button>
-         <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
-       </div>`+
+      '<div class="you">'+esc(d.question||text)+'</div>'+  // status + thinking ABOVE the answer
       (autoMode?`<div class="work" id="work-${seq}">
        <div class="workbar"><span class="wspin"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
        <span class="wprog"><i></i></span>
        <button class="worktoggle" id="worktoggle-${seq}">Show thinking</button></div>
-       <div class="worklog" id="worklog-${seq}"></div></div>`:''));
+       <div class="worklog" id="worklog-${seq}"></div></div>`:'')+
+      `<div class="cards${autoMode?' auto-hidden':''}" id="cards-${seq}"></div>`+
+      `<div class="arbiter${autoMode?' auto':''}" id="arb-${seq}">
+         <button class="primary" id="pick-${seq}" disabled>Pick best answer</button>
+         <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
+       </div>`);
     insertSteps();
     (d.records||[]).forEach(r=>card(r,r.strategy==='react',seq));
     const pick=$('#pick-'+seq);if(pick)pick.disabled=false;
