@@ -131,6 +131,47 @@ will use to discard bad candidates.
 
 **226 tests passing** (16 new in `tests/test_discovery_mutations.py`).
 
+## What Phase 4 added (2026-08-11, DONE — 9 tests)
+
+`dse/discovery/loop.py` — the discovery loop v0 (spec §15–§21). This is the
+milestone where the system stops being a toolbox and actually **discovers**:
+
+- `split_tasks` — deterministic discovery/held-out split (§20/§21).
+- `promotion_gate` — the §19/§20 gate: candidate must show **discovery
+  improvement**, **no-regression** (rate-level), and **held-out
+  improvement** (generalizes — anti-overfitting). Strict per-task b01 and
+  McNemar p are reported as information; with per-architecture reseeding,
+  strict per-task never-worse is not estimable in expectation (each
+  architecture faces its own RNG stream), so rate-level no-regression is the
+  honest requirement (documented in the gate).
+- `discover` — population + beam: benchmark baselines → incumbent; each
+  round mutate the population, benchmark on the discovery set, register
+  every candidate with genealogy + fitness (lifecycle: benchmarked →
+  independently_verified → promoted / rejected), apply the gate, keep the
+  best beam. Reports `DiscoveryReport` (rounds, beam, promoted/rejected,
+  honest NO PROMOTION).
+- **Structural-distinctness guard** (found the hard way in the demo): a
+  candidate structurally IDENTICAL to the incumbent (a no-op mutation like
+  gather_join on a single-node graph) was promoted by pure reseed luck —
+  that's §47's "never promote on a lucky run". Now rejected: only strictly
+  different structures compete.
+- `best_of_n_ify` expansion operator (in mutations.py): turns a generator
+  node into N parallel copies → **objective-verifier selection** (like the
+  real best_of_n agent — noisy-judge selection does NOT win on the mock) →
+  verify. Verified: react 16.7% → **33.3%** (n=12) and 20.8% → **45.8%**
+  (n=24), with strict per-task never-worse (b01=0) on this mock.
+- `verify_items` primitive: objective per-candidate scoring (RunResult /
+  dict / text aware) — selection must use the objective verifier, not the
+  noisy judge, to be reliable.
+
+**Demo discovery run** (react incumbent, 24-task mock): the loop generated 28
+candidates over 3 rounds and PROMOTED three genuinely-distinct architectures
+(novelty 0.75–0.9 vs react) — e.g. `duplicate_sequential + best_of_n_ify`
+beats react on both discovery and held-out with no regression. The research
+hypothesis now has its first (small, mock-scale) positive instance.
+
+**235 tests passing** (9 new in `tests/test_discovery_loop.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -138,7 +179,7 @@ will use to discard bad candidates.
 | **1 ✅** | Executable graphs, primitives, compiler, executor, registry, baselines | strategies, guards, verifiers, harness | 21 tests |
 | **2 ✅** | Validate + head-to-head the baseline graphs (Phase-2 gate: graph ≡ strategy) | `run_benchmark`, `run_never_worse` | baselines match the strategy results they wrap (8 equivalence tests) |
 | **3 ✅** | Mutation operators: insertion/deletion/substitution/reordering/duplication/branching/merging + compile-gated random mutation | `ArchGraph` + registry | each mutation compiles (16 tests) |
-| 4 | Discovery loop v0: population + beam of candidates, fitness from `ArchRunRecord`, independent-judge gate, never-worse promotion gate | registry, `harness` stats | a discovered candidate can beat a baseline on held-out mock tasks |
+| **4 ✅** | Discovery loop v0: population + beam, fitness from `ArchRunRecord`, promotion gate (improvement + no-regression + held-out generalization + structural distinctness) | registry, `harness` stats, mutations | a discovered candidate beats a baseline on held-out mock tasks (9 tests — demonstrated) |
 | 5 | Evolutionary search: selection, crossover, novelty preservation, retirement | Phase 4 loop | improvement survives bootstrap CI + sign test vs baselines |
 | 6 | Adaptive routing: learn task-class → architecture via the profiler + bandit/UCB | `ProblemProfiler` (new) + Phase 5 | routing beats any single fixed architecture on held-out tasks |
 | 7 | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23) | `ArchRunRecord` costs | a Pareto-optimal point vs human baselines |

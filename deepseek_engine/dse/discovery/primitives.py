@@ -193,16 +193,43 @@ def _judge(ctx, node, inputs):
     return NodeOutput(score, kind="judge", meta={"score": score, "samples": samples})
 
 
+@register("verify_items")
+def _verify_items(ctx, node, inputs):
+    """Score every incoming item with the OBJECTIVE verifier (like the real
+    best_of_n agent: N drafts, verifier-selected). Each input may be a
+    strategy RunResult, a dict or plain text. Returns
+    ``[{"id","text","score","passed"}]`` where score is the verifier score."""
+    items = []
+    for port, out in inputs.items():
+        v = out.value
+        if hasattr(v, "answer"):
+            text = v.answer
+        elif isinstance(v, dict):
+            text = v.get("answer") or v.get("text") or str(v)
+        else:
+            text = str(v)
+        verdict = ctx.verifier.score(text, ctx.task)
+        items.append({"id": port, "text": text, "score": verdict.score,
+                      "passed": bool(verdict.passed)})
+    return NodeOutput(items, kind="verify_items", meta={"n": len(items)})
+
+
 @register("score_items")
 def _score_items(ctx, node, inputs):
-    """Score every incoming item (each input = one candidate text) -> list of
+    """Score every incoming item (each input = one candidate) -> list of
     ``{"id","text","score"}`` dicts. Mirrors the production pipeline's per-
-    candidate judging."""
+    candidate judging. Handles strategy RunResults, dicts and plain text."""
     fn = _judge_callable(ctx, node)
     samples = int(node.params.get("samples", 3))
     items = []
     for port, out in inputs.items():
-        text = out.text if isinstance(out.value, str) else str(out.value)
+        v = out.value
+        if hasattr(v, "answer"):
+            text = v.answer
+        elif isinstance(v, dict):
+            text = v.get("answer") or v.get("text") or str(v)
+        else:
+            text = str(v)
         score = robust_score(fn, text, samples=samples)
         items.append({"id": port, "text": text, "score": score})
     return NodeOutput(items, kind="score_items", meta={"n": len(items)})
@@ -348,13 +375,16 @@ def _strategy(ctx, node, inputs):
 
 @register("extract")
 def _extract(ctx, node, inputs):
-    """Pull the answer text out of a strategy RunResult (value of a
-    ``strategy`` node) or pass strings through."""
+    """Pull the answer text out of a strategy RunResult, a scored item dict
+    (``{id, text, score}`` from score_items/select_best), or pass strings
+    through."""
     out = next(iter(inputs.values())).value
     if hasattr(out, "answer"):
         text = out.answer
     elif isinstance(out, dict) and "answer" in out:
         text = out["answer"]
+    elif isinstance(out, dict) and "text" in out:
+        text = out["text"]
     else:
         text = str(out)
     return NodeOutput(text, kind="extract", meta={"strategy": getattr(out, "strategy", "")})

@@ -236,6 +236,76 @@ def gather_join(graph: ArchGraph, target_id: str, gather_id: str | None = None) 
 # Random mutation (for the discovery loop, Phase 4)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Expansion (spec §7/§35: add compute where it provides measurable benefit)
+# ---------------------------------------------------------------------------
+
+def best_of_n_ify(graph: ArchGraph, node_id: str, n: int = 3) -> ArchGraph:
+    """Replace a generator node with an N-draft structure: ``n`` parallel
+    copies -> gather -> verify_items (OBJECTIVE verifier selection, like the
+    real best_of_n agent) -> select_best -> extract -> verify, then re-attach
+    the original downstream edges from the verify node.
+
+    This is the classic best-of-N expansion — the discovery loop can thereby
+    *discover* "more parallel drafts + objective selection" from a
+    single-generator baseline. Objective selection (not the noisy judge) is
+    what makes it actually win, mirroring the measured best_of_n strategy.
+    """
+    g = _copy(graph)
+    if node_id not in g.nodes:
+        raise ValueError(f"node {node_id!r} not in graph")
+    if n < 2:
+        raise ValueError("best_of_n_ify needs n >= 2")
+    x = g.nodes[node_id]
+    p, q = x.primitive, dict(x.params)
+    out_edges = [e for e in g.edges if e.source == node_id]
+    in_edges = [e for e in g.edges if e.target == node_id]
+    for e in out_edges + in_edges:
+        if e in g.edges:
+            g.edges.remove(e)
+    del g.nodes[node_id]
+
+    ids = []
+    for i in range(1, n + 1):
+        cid = f"{node_id}_b{i}"
+        g.add_node(ArchNode(cid, p, params=dict(q)))
+        ids.append(cid)
+    sid = _fresh_id(g, "bo_score")
+    bid = _fresh_id(g, "bo_select")
+    xid = _fresh_id(g, "bo_extract")
+    vid = _fresh_id(g, "bo_verify")
+    g.add_node(ArchNode(sid, "verify_items"))
+    g.add_node(ArchNode(bid, "select_best"))
+    g.add_node(ArchNode(xid, "extract"))
+    g.add_node(ArchNode(vid, "verify"))
+    # each copy fans DIRECTLY into verify_items (one input port per candidate —
+    # a gather node would collapse them into a single list and break scoring)
+    for cid in ids:
+        _add_edge(g, cid, sid, port=cid)
+    _add_edge(g, sid, bid)
+    _add_edge(g, bid, xid)
+    _add_edge(g, xid, vid)
+    # prior in-edges (if any) also feed the scoring pool as candidates
+    for ie in in_edges:
+        _add_edge(g, ie.source, sid, ie.port)
+    # re-attach the original downstream from the verify node
+    for oe in out_edges:
+        _add_edge(g, vid, oe.target, oe.port)
+    if g.entry == node_id:
+        g.entry = ids[0]
+    if g.exit == node_id:
+        g.exit = vid
+    return g
+
+
+def _pick_source_node(graph: ArchGraph, rng: random.Random) -> str:
+    """A node with no in-edges (an implicit entry source) — the safe target
+    for best_of_n_ify."""
+    has_in = {e.target for e in graph.edges}
+    cands = sorted(n for n in graph.nodes if n not in has_in)
+    return rng.choice(cands) if cands else _pick_node(graph, rng)
+
+
 _OPERATORS = [
     ("insert_verify", lambda g, rng: insert_verify(g, _pick_single_input_target(g, rng))),
     ("append_verify", lambda g, rng: append_verify(g, _pick_node(g, rng))),
@@ -245,6 +315,8 @@ _OPERATORS = [
     ("duplicate_parallel", lambda g, rng: duplicate_parallel(g, _pick_node(g, rng))),
     ("duplicate_sequential", lambda g, rng: duplicate_sequential(g, _pick_node(g, rng))),
     ("gather_join", lambda g, rng: gather_join(g, _pick_multi_input_target(g, rng))),
+    ("best_of_n_ify", lambda g, rng: best_of_n_ify(g, _pick_source_node(g, rng),
+                                                   n=rng.randint(2, 4))),
 ]
 
 

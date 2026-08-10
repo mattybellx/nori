@@ -33,8 +33,17 @@ from .evaluate import (
 )
 from .executor import ArchExecutor, ArchRunRecord, NodeEvent
 from .graph import ArchEdge, ArchGraph, ArchNode, novelty_against, structural_similarity
+from .loop import (
+    DiscoveryConfig,
+    DiscoveryReport,
+    RoundRecord,
+    discover,
+    promotion_gate,
+    split_tasks,
+)
 from .mutations import (
     append_verify,
+    best_of_n_ify,
     branch,
     delete_node,
     duplicate_parallel,
@@ -82,9 +91,12 @@ __all__ = [
     "CompileError", "compile_graph", "validate",
     "ExecutionContext", "NodeOutput", "Primitive",
     "register", "registered_names",
+    "DiscoveryConfig", "DiscoveryReport", "RoundRecord",
+    "discover", "promotion_gate", "split_tasks",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
+    "best_of_n_ify",
     "random_mutation", "mutation_operators",
     "novelty_against", "structural_similarity",
     "react_graph", "best_of_n_graph", "reflexion_graph", "self_refine_graph",
