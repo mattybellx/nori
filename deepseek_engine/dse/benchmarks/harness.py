@@ -183,6 +183,24 @@ def wilcoxon_signed_rank(
     return w_plus, min(1.0, p)
 
 
+def sign_test(favor: int, total: int) -> float:
+    """Two-sided binomial sign test on paired preferences (dependency-free).
+
+    ``favor`` of ``total`` paired comparisons preferred the treatment
+    (ties excluded). Under H0 each comparison favors either side with p=0.5;
+    the two-sided p-value is ``2 * P(X <= min(favor, total-favor))``.
+    """
+    total = int(total)
+    favor = int(favor)
+    if total <= 0:
+        return 1.0
+    k = min(favor, total - favor)
+    p_lower = 0.0
+    for i in range(k + 1):
+        p_lower += math.comb(total, i) * (0.5 ** total)
+    return min(1.0, 2.0 * p_lower)
+
+
 # ---------------------------------------------------------------------------
 # Harness
 # ---------------------------------------------------------------------------

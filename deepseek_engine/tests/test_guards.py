@@ -12,6 +12,7 @@ import random
 
 from dse.guards import (
     consistency_score,
+    grounded_score,
     robust_score,
     selection_guard,
     synthesis_guard,
@@ -47,6 +48,47 @@ def test_consistency_empty_is_zero():
     assert consistency_score("", ["anything at all"]) == 0.0
     assert consistency_score(None, ["anything"]) == 0.0
     assert consistency_score("something", []) == 0.0
+
+
+# ---------------------------------------------------------------------------
+# grounded_score (substance-weighted quality — attacks the self-grading
+# circularity: a score is only "worth" as much as the answer is grounded in
+# the candidates, not merely styled like the judge's own output)
+# ---------------------------------------------------------------------------
+
+def test_grounded_fully_grounded_keeps_full_judge_score():
+    # overlap = 1.0 -> weight = 1.0 -> score unchanged
+    assert grounded_score("abc abc abc", ["abc abc abc"],
+                          judge_score=9.0, min_weight=0.6) == 9.0
+
+
+def test_grounded_zero_overlap_drops_to_min_weight():
+    # overlap = 0.0 -> score * min_weight
+    assert grounded_score("wxyz qrst", ["abc def ghi"],
+                          judge_score=9.0, min_weight=0.6) == 9.0 * 0.6
+
+
+def test_grounded_partial_overlap_discounts():
+    # one shared bigram out of three -> overlap = 1/3
+    # weight = 0.6 + 0.4*(1/3) = 0.7333...
+    s = grounded_score("the quick red fox", ["the quick brown fox jumps"],
+                       judge_score=9.0, min_weight=0.6)
+    assert abs(s - 9.0 * (0.6 + 0.4 / 3.0)) < 1e-9
+
+
+def test_grounded_no_judge_returns_overlap_only():
+    assert grounded_score("abc abc", ["abc abc abc"]) == 1.0
+    assert grounded_score("wxyz", ["abc def"]) == 0.0
+
+
+def test_grounded_takes_best_candidate_and_defaults_min_weight():
+    # default min_weight=0.6; best candidate gives overlap 1.0
+    assert grounded_score("nori test phrase", ["zzz", "nori test phrase extra"],
+                          judge_score=8.0) == 8.0
+
+
+def test_grounded_empty_synth_is_zero():
+    assert grounded_score("", ["anything"], judge_score=8.0) == 0.0
 
 
 # ---------------------------------------------------------------------------

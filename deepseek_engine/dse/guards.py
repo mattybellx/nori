@@ -89,6 +89,33 @@ def consistency_score(synth: str, candidates: list[str], n: int = 2) -> float:
     return best
 
 
+def grounded_score(
+    synth: str,
+    candidates: list[str],
+    judge_score: float | None = None,
+    min_weight: float = 0.6,
+) -> float:
+    """Substance-weighted quality — separates real content from style.
+
+    A raw judge score can be inflated by the model preferring its own style
+    (the self-grading circularity). This discounts the judge score by how
+    GROUNDED the synthesis is in the candidates:
+
+        score * (min_weight + (1 - min_weight) * overlap)
+
+    overlap = consistency_score(synth, candidates). Fully grounded (1.0) keeps
+    the full judge score; zero-overlap (novel, possibly hallucinated) drops to
+    ``min_weight`` of it. When ``judge_score`` is None, returns just the
+    overlap (pure substance).
+    """
+    overlap = consistency_score(synth, candidates)
+    if not synth or not synth.strip():
+        return 0.0
+    if judge_score is None:
+        return overlap
+    return judge_score * (min_weight + (1.0 - min_weight) * overlap)
+
+
 def selection_guard(
     records: list[dict],
     winner_strategy: str | None,

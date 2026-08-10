@@ -14,6 +14,7 @@ from dse.benchmarks.harness import (
     run_multi_seed,
     save_results,
     serialize_results,
+    sign_test,
     wilcoxon_signed_rank,
 )
 from dse.events import RunResult
@@ -131,6 +132,49 @@ def test_wilcoxon_large_n_uses_normal_approximation():
     w, p = wilcoxon_signed_rank(final, baseline)
     assert p < 0.001
     assert w == 40 * 41 / 2.0
+
+
+# ---------------------------------------------------------------------------
+# sign_test (two-sided binomial sign test on paired preferences)
+# ---------------------------------------------------------------------------
+
+def test_sign_test_zero_total_is_one():
+    assert sign_test(0, 0) == 1.0
+
+
+def test_sign_test_all_against_is_two_sided_tail():
+    # 0 favor of 10 -> P(X<=0) = 0.5^10; two-sided doubles it
+    expected = 2 * (0.5 ** 10)
+    assert abs(sign_test(0, 10) - expected) < 1e-12
+
+
+def test_sign_test_balanced_is_high_p():
+    # 5 vs 5 -> two-sided p should be ~1
+    assert sign_test(5, 10) >= 0.99
+
+
+def test_sign_test_extreme_split_is_significant():
+    # 20 vs 0 -> essentially impossible under H0
+    assert sign_test(20, 20) < 0.00001
+
+
+def test_sign_test_moderate_split_exact():
+    # 9 vs 1 of 10: P(X<=1) = (C(10,0)+C(10,1))*0.5^10; two-sided
+    expected = 2 * (0.5 ** 10 + 10 * 0.5 ** 10)
+    assert abs(sign_test(9, 10) - expected) < 1e-12
+
+
+def test_sign_test_symmetric_in_favor_direction():
+    # favoring A 9/10 and favoring B 9/10 give identical p
+    assert sign_test(9, 10) == sign_test(1, 10)
+
+
+def test_sign_test_typical_n64_boundary():
+    # n=64, 40 favor, 24 against (ties excluded) — power check
+    p = sign_test(40, 64)
+    assert 0.0 <= p <= 1.0
+    # 40/64 = 62.5% is not yet significant at 5% for a two-sided test
+    assert p > 0.05
 
 
 # ---------------------------------------------------------------------------

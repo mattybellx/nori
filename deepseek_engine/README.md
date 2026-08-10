@@ -81,7 +81,11 @@ so the answer you actually read is better than any single attempt.
 - **Never worse, by construction** — a selection guard and a no-regression
   synthesis guard make it a *design property* that the shipped answer is never
   worse than the best candidate (proved by property tests and a ground-truth
-  `never-worse` benchmark).
+  `never-worse` benchmark). **Honest scope:** the *never-worse* guarantee is
+  proven against ground truth on checkable tasks; the *open-ended* question of
+  whether the merged answer is genuinely **better** than a single model's
+  answer shows a positive direction in self-judged runs but is **not yet
+  confirmed under an independent judge** (see [BENCHMARKS.md §15](BENCHMARKS.md#15-never-worse-guards--the-always-better-pitch-measured-2026-08-10)).
 
 ## How it works
 
@@ -267,14 +271,34 @@ the checkable suites, and against a de-noised judge on open-ended questions:
 
 ```bash
 python -m dse.benchmarks.run_never_worse --provider mock --suite all --n-tasks 48
-python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 32
+python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 64
 # grade with an INDEPENDENT model to break self-grading circularity:
-python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 32 --judge-model deepseek-v4-pro
+python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 64 --judge-model deepseek-v4-pro
+# strength of the judge's signal:
+python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 64 --judge-samples 5
 ```
 
-The free suite (32 open-ended questions, no ground truth) reports paired
-**Wilcoxon signed-rank** significance on the judge scores, not just averages —
-so a 6→8 improvement counts, not just a flipped pass/fail bit.
+The free suite (open-ended questions, no ground truth) reports paired
+**Wilcoxon signed-rank** significance on the judge scores (so a 6→8
+improvement counts, not just a flipped pass/fail bit), a **pairwise preference
+judge** with a **sign test** (relative "which answer is better?" comparisons,
+far more stable than absolute scores), and a **groundedness-weighted score**
+that discounts judge scores by how much of the final answer actually comes
+from the candidates — separating real content from the judge's stylistic
+self-preference.
+
+> **Honest positioning.** What is *proven*: the never-worse guarantee (by
+> ground truth on checkable tasks). What is *not yet proven*: that the merged
+> answer is consistently better than a plain single-model answer on open-ended
+> questions. Self-judged runs show a positive direction, but an independent
+> judge (`--judge-model deepseek-v4-pro`) did **not** replicate significance
+> (p = 0.32 at n=32). The benchmark therefore never claims "smarter answers"
+> — it reports the direction, the effect size, and both the self-judged and
+> independent-judged p-values, and it keeps adding statistical power (n=64)
+> and a more robust signal (preference judge + groundedness) to test the claim
+> properly. If the independent judge never confirms it, the honest answer is
+> that nori's value is the guaranteed never-worse floor plus the UI/workflow —
+> not a measurable quality leap.
 
 ## Providers
 

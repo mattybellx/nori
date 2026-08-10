@@ -33,8 +33,8 @@ from ..env import load_env
 from ..events import RunResult
 from ..factory import build_stack
 from ..freeform import FreeFormJudge, PromptTask
-from ..guards import robust_score, selection_guard, synthesis_guard
-from .harness import bootstrap_ci, mcnemar, wilcoxon_signed_rank
+from ..guards import grounded_score, robust_score, selection_guard, synthesis_guard
+from .harness import bootstrap_ci, mcnemar, sign_test, wilcoxon_signed_rank
 
 _SYNTH_PROMPT = (
     "You are a careful answer synthesizer. Below are several candidate "
@@ -51,14 +51,28 @@ _SYNTH_PROMPT = (
 _JUDGE_PROMPT = (
     "You are a strict, calibrated answer grader. Reply with EXACTLY one line "
     "and nothing else: SCORE: <0-10>. Be harsh; use the full range.\n"
+    "QUESTION: {question}\n"
     "ANSWER:\n{text}"
+)
+
+# Pairwise preference judge — relative comparison is far more stable than
+# absolute scores (a 6 vs 8 judgment is hard; "which of these two is better?"
+# is easy), which directly attacks judge noise.
+_PREF_PROMPT = (
+    "You are a strict answer-quality judge. Given the QUESTION and TWO "
+    "answers, decide which answer is BETTER: more accurate, clearer, more "
+    "complete, and more directly answering the question.\n"
+    "Reply with EXACTLY one line and nothing else: BETTER: A  (or B, or TIE)\n"
+    "QUESTION: {question}\n"
+    "ANSWER A:\n{a}\n"
+    "ANSWER B:\n{b}"
 )
 
 # Open-ended questions (no ground truth): quality is the de-noised judge's
 # score. This is the regime where a frontier model's answers genuinely differ
 # and synthesis can add value — the honest place to show "sometimes better".
-# 32 questions across science, tech, health, finance, career and society so
-# the paired significance test has enough power (n=32, not a pilot n=8).
+# 64 questions across science, tech, health, finance, career, society, health
+# and everyday life so the paired significance test has real power (n=64).
 _FREE_QUESTIONS = [
     "Explain how quantum entanglement works in simple terms.",
     "What are the main pros and cons of remote work?",
@@ -92,6 +106,38 @@ _FREE_QUESTIONS = [
     "Explain the difference between a manager and a leader, with examples.",
     "What are the main causes of climate change, and what are the most effective responses?",
     "How would you design a personal budget that you can actually stick to?",
+    "Why does a compass point north, and would it work in space?",
+    "What are the best ways to improve your memory, and which have real evidence behind them?",
+    "Explain the difference between weather and climate, and why it matters for forecasts.",
+    "What should you look for when choosing a laptop for university in 2026?",
+    "How do antibiotics work, and why is overuse a problem?",
+    "What are the main arguments for and against a four-day working week?",
+    "Explain how the internet actually sends data from one computer to another.",
+    "What is the best way to start investing with a small amount of money?",
+    "How would you explain the concept of gravity to a ten-year-old?",
+    "What are the pros and cons of using a password manager?",
+    "Why do some friendships fade while others last, and what keeps one healthy?",
+    "Explain the difference between a virus and a bacterium in everyday terms.",
+    "What are the key things to know before getting a pet for the first time?",
+    "How do self-driving cars decide what to do in an emergency?",
+    "What are the trade-offs between public and private healthcare systems?",
+    "Explain how a microwave oven actually heats food.",
+    "What are the best strategies for studying that are backed by research?",
+    "How would you explain the concept of artificial intelligence to your grandparents?",
+    "What are the main causes of ocean plastic pollution, and what actually helps?",
+    "Explain the difference between saving and investing, with a real example.",
+    "What should someone consider before going freelance or self-employed?",
+    "How do batteries work, and why do they degrade over time?",
+    "What are the strongest arguments for and against a universal basic income?",
+    "Explain how GPS knows where you are.",
+    "What are the pros and cons of social media for teenagers?",
+    "How would you explain the concept of supply and demand with a simple example?",
+    "What are the best ways to reduce food waste at home?",
+    "Explain the difference between coaching and therapy.",
+    "What are the key considerations when choosing a place to rent a first apartment?",
+    "How does a plane stay in the air?",
+    "What are the main differences between a mortgage and a personal loan?",
+    "Explain how the brain forms and keeps a memory.",
 ]
 
 
@@ -112,14 +158,34 @@ def _build_judge_llm(provider: str, judge_model: str | None, main_llm):
     return judge_llm if judge_llm is not None else main_llm
 
 
-def _score_text(llm, text: str) -> float | None:
+def _score_text(llm, question: str | None, text: str) -> float | None:
     try:
-        resp = llm.complete([{"role": "system", "content": _JUDGE_PROMPT.format(text=text or "")}],
-                            model="expensive", max_tokens=40).text or ""
+        resp = llm.complete([{"role": "system", "content": _JUDGE_PROMPT.format(
+            question=question or "", text=text or "")}],
+            model="expensive", max_tokens=40).text or ""
     except Exception:
         return None
     m = re.search(r"SCORE\s*:\s*(\d+(?:\.\d+)?)", resp, re.IGNORECASE)
     return float(m.group(1)) if m else None
+
+
+def _preference_judge(llm, question: str, a: str, b: str) -> str:
+    """Which of two answers is better, according to the (independent) judge.
+
+    Returns "A", "B" or "TIE". Relative comparison is far more stable than
+    absolute 0-10 scoring — the most direct attack on judge noise.
+    """
+    prompt = _PREF_PROMPT.format(question=question or "", a=a or "", b=b or "")
+    for _ in range(3):  # V4 Flash intermittently returns blank completions
+        try:
+            resp = llm.complete([{"role": "system", "content": prompt}],
+                                model="expensive", max_tokens=20).text or ""
+        except Exception:
+            continue
+        m = re.search(r"BETTER\s*:\s*(A|B|TIE)", resp, re.IGNORECASE)
+        if m:
+            return m.group(1).upper()
+    return "TIE"
 
 
 def _judge_candidate(judge, task, answer: str) -> float | None:
@@ -127,9 +193,13 @@ def _judge_candidate(judge, task, answer: str) -> float | None:
     return v.details.get("judge_score")
 
 
-def _make_robust_judge(llm, samples: int):
+def _make_robust_judge(llm, samples: int, question: str | None = None):
     """A judge whose score is the median of ``samples`` calls — de-noised."""
-    return lambda text: robust_score(lambda t: _score_text(llm, t), text, samples=samples)
+    if question is None:
+        return lambda text: robust_score(lambda t: _score_text(llm, None, t),
+                                         text, samples=samples)
+    return lambda text: robust_score(lambda t: _score_text(llm, question, t),
+                                     text, samples=samples)
 
 
 def _synthesize(llm, question: str, candidates: list[dict], winner_name: str) -> str:
@@ -300,11 +370,13 @@ def run_free(provider: str, judge_samples: int, n_questions: int,
     by_name = {s.name: s for s in strategies}
     wanted = [n for n in ("react", "reflexion", "self_refine") if n in by_name]
     judge_llm = _build_judge_llm(provider, judge_model, llm)
-    robust = _make_robust_judge(judge_llm, judge_samples)
     questions = _FREE_QUESTIONS[:n_questions]
     rows = []
     t_start = time.time()
     for qi, question in enumerate(questions, 1):
+        # Question-aware, de-noised judge — the median of `judge_samples`
+        # independent grading calls, each given the question for context.
+        robust = _make_robust_judge(judge_llm, judge_samples, question)
         task = PromptTask(id=f"free-{qi}", prompt=question)
         cands = {}
         for name in wanted:
@@ -328,6 +400,21 @@ def run_free(provider: str, judge_samples: int, n_questions: int,
         baseline_quality = robust(cands["react"]["answer"])
         winner_quality = robust(win["answer"])
         final_quality = robust(final) if used_synth else winner_quality
+        # Substance-weighted quality: judge score discounted by how grounded
+        # the synthesis is in the candidates (separates real content from
+        # style-preference — attacks the self-grading circularity directly).
+        final_grounded = grounded_score(
+            final if used_synth else win["answer"], candidates_text,
+            judge_score=final_quality)
+        # Pairwise preference (relative judgement is far more stable than
+        # absolute scores): final vs the baseline react answer, and final vs
+        # the guarded winner. Ties are dropped from the sign test.
+        pref_final_vs_baseline = _preference_judge(
+            judge_llm, question, final if used_synth else win["answer"],
+            cands["react"]["answer"])
+        pref_final_vs_winner = _preference_judge(
+            judge_llm, question, final if used_synth else win["answer"],
+            win["answer"])
         rows.append({
             "question": question,
             "winner_strategy": winner_name,
@@ -337,6 +424,9 @@ def run_free(provider: str, judge_samples: int, n_questions: int,
             "baseline_quality": baseline_quality,
             "winner_quality": winner_quality,
             "final_quality": final_quality,
+            "final_grounded": final_grounded,
+            "pref_final_vs_baseline": pref_final_vs_baseline,
+            "pref_final_vs_winner": pref_final_vs_winner,
             "guard": guard_why,
         })
         print(f"  [{qi}/{len(questions)}] {question[:42]}")
@@ -362,6 +452,19 @@ def run_free(provider: str, judge_samples: int, n_questions: int,
         w, p = wilcoxon_signed_rank([p[0] for p in pairs], [p[1] for p in pairs])
         return {"w": round(w, 1), "p": round(p, 6), "n": len(pairs)}
 
+    # Sign test on pairwise preferences: how often the final answer was
+    # preferred over the baseline / winner (ties excluded).
+    def _pref_stats(key: str) -> dict:
+        favor = sum(1 for r in rows if r[key] == "A")
+        against = sum(1 for r in rows if r[key] == "B")
+        ties = sum(1 for r in rows if r[key] == "TIE")
+        p = sign_test(favor, favor + against) if (favor + against) else 1.0
+        return {
+            "favor_final": favor, "favor_other": against, "ties": ties,
+            "win_rate": round(favor / (favor + against), 3) if (favor + against) else None,
+            "sign_test_p": round(p, 6),
+        }
+
     fv_b = [(r["final_quality"], r["baseline_quality"]) for r in rows
             if r["final_quality"] is not None and r["baseline_quality"] is not None]
     fv_w = [(r["final_quality"], r["winner_quality"]) for r in rows
@@ -378,12 +481,15 @@ def run_free(provider: str, judge_samples: int, n_questions: int,
         "baseline_quality_avg": round(avg("baseline_quality"), 3),
         "winner_quality_avg": round(avg("winner_quality"), 3),
         "final_quality_avg": round(avg("final_quality"), 3),
+        "final_grounded_avg": round(avg("final_grounded"), 3),
         "never_worse_judge": round(never_worse / n, 3) if n else 0.0,
         "never_worse_count": never_worse,
         "sometimes_better": sometimes_better,
         "wilcoxon_final_vs_baseline": _wilcox(fv_b),
         "wilcoxon_final_vs_winner": _wilcox(fv_w),
         "wilcoxon_winner_vs_baseline": _wilcox(wv_b),
+        "pref_final_vs_baseline": _pref_stats("pref_final_vs_baseline"),
+        "pref_final_vs_winner": _pref_stats("pref_final_vs_winner"),
         "selection_guard_fired": sum(1 for r in rows if r["selection_fired"]),
         "synthesis_guard_fired": sum(1 for r in rows if r["synthesis_fired"]),
         "elapsed_s": round(time.time() - t_start, 1),
@@ -433,6 +539,8 @@ def main() -> None:
     if args.suite == "free":
         fvb = s["wilcoxon_final_vs_baseline"]
         fvw = s["wilcoxon_final_vs_winner"]
+        pfvb = s["pref_final_vs_baseline"]
+        pfvw = s["pref_final_vs_winner"]
         print(ui.table(
             ["metric", "value"],
             [
@@ -440,10 +548,13 @@ def main() -> None:
                 ["baseline (react) quality (robust judge)", f"{s['baseline_quality_avg']:.2f}/10"],
                 ["guarded winner quality", f"{s['winner_quality_avg']:.2f}/10"],
                 ["FINAL quality (with guards)", f"{s['final_quality_avg']:.2f}/10"],
+                ["FINAL grounded quality (substance-weighted)", f"{s['final_grounded_avg']:.3f}/10"],
                 ["never-worse by robust judge (final >= winner)", f"{s['never_worse_judge']:.3f}  ({s['never_worse_count']}/{s['n']})"],
                 ["sometimes better (final > baseline + 0.5)", str(s["sometimes_better"])],
                 ["final vs baseline paired Wilcoxon", f"W={fvb['w']} p={fvb['p']} (n={fvb['n']})"],
                 ["final vs winner paired Wilcoxon", f"W={fvw['w']} p={fvw['p']} (n={fvw['n']})"],
+                ["PREF final vs baseline (A/B/TIE)", f"{pfvb['favor_final']}/{pfvb['favor_other']}/{pfvb['ties']}  win-rate={pfvb['win_rate']}  sign-test p={pfvb['sign_test_p']}"],
+                ["PREF final vs winner (A/B/TIE)", f"{pfvw['favor_final']}/{pfvw['favor_other']}/{pfvw['ties']}  win-rate={pfvw['win_rate']}  sign-test p={pfvw['sign_test_p']}"],
                 ["selection guard fired", str(s["selection_guard_fired"])],
                 ["synthesis guard fired (fell back)", str(s["synthesis_guard_fired"])],
                 ["elapsed", f"{s['elapsed_s']}s"],

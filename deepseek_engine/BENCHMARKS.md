@@ -546,7 +546,78 @@ can't happen again).
    runs), but the "statistically significant smarter answers" headline only
    holds when the same model grades itself. That is exactly why an
    independent judge matters, and why the claim must be downgraded.
-4. **Next step if we want a defensible claim:** more power (n=64+) and/or a
-   groundedness-weighted metric — the gap (self +1.23 vs pro +0.79) suggests
-   part of the self-judge gain was stylistic self-preference, not
-   substance.
+
+### What changed next (2026-08-11) — three attacks on the claim, then a re-test
+
+The negative result above says the open-ended claim is *not yet proven*. To
+test it properly we made three changes to the benchmark itself (not to the
+product — the claim must earn its keep honestly):
+
+1. **More power — n=64 questions.** The free suite grew from 32 to 64
+   open-ended questions. At n=32, a true +0.5pt effect only reaches
+   significance ~40% of the time; at n=64 it approaches ~70%. If there is a
+   real effect, we now have a fair chance to see it. (The n=8 pilot's p≈1.0
+   was a pure power failure — this is the same lesson at a larger scale.)
+2. **A stronger signal — pairwise preference judge + sign test.** Instead of
+   asking "score this 0-10" (noisy: is a 6 vs 8 judgment meaningful?), the
+   benchmark now also asks the independent judge a *relative* question —
+   "which of these two answers is better?" (A/B/TIE) — for final-vs-baseline
+   and final-vs-winner, and tests the preference counts with a two-sided
+   **binomial sign test**. Relative comparisons are far more stable than
+   absolute scores, so this is the most direct attack on judge noise.
+3. **Substance-weighted quality — groundedness.** The score-based metric now
+   also reports `final_grounded = judge_score × (0.6 + 0.4 × overlap)` where
+   overlap is how much of the final answer's content actually appears in the
+   candidates. This separates real content from the judge's stylistic
+   self-preference (the suspected source of the self-judge-only gain).
+
+New metrics recorded per run: `final_grounded_avg`,
+`pref_final_vs_baseline` / `pref_final_vs_winner` (favor/against/ties +
+win-rate + `sign_test_p`). Question-aware judging (the question is now shown
+to the grader alongside each answer) and `--judge-samples 5` (a de-noised
+median-of-5) are also available. All of this was validated by the unit tests
+(181 passing) and a fresh n=8 independent-judge pilot run before any claim is
+made — see the run table in [§15](#15-never-worse-guards--the-always-better-pitch-measured-2026-08-10).
+
+### n=8 validation run with the new metrics — deepseek-v4-pro grades (2026-08-10, ~37 min)
+
+**The first independent-judge run with the preference + groundedness
+machinery. Record: `benchmarks/results/never_worse_deepseek_free8_projudge.json`**
+(full rows persisted — the data-loss fix held).
+
+| metric | value |
+|---|---|
+| baseline (react) quality (robust judge) | 8.00/10 |
+| guarded winner quality | 9.50/10 |
+| FINAL quality (with guards) | 9.75/10 (+1.75) |
+| FINAL grounded quality (substance-weighted) | 8.09/10 |
+| never-worse (final ≥ winner) | **8/8 (100%)** |
+| sometimes-better | 3/8 |
+| final vs baseline paired Wilcoxon | W=6.0, p=0.25 (n=8) — no power at n=8 |
+| final vs winner paired Wilcoxon | W=3.0, p=0.50 (n=8) — no power at n=8 |
+| **PREF final vs baseline (A/B/TIE)** | **6/0/2 — win-rate 1.0 — sign-test p = 0.03125** |
+| PREF final vs winner (A/B/TIE) | 5/1/2 — win-rate 0.833 — p = 0.21875 |
+| guards fired | selection 0, synthesis 0 |
+
+**What this honestly means:**
+
+1. **The preference judge delivered the first statistically significant
+   independent-judge result.** The independent pro model preferred the final
+   answer over the plain react baseline in **6 of 6 decisive comparisons**
+   (2 ties), sign-test **p = 0.031**. This is the strongest evidence so far
+   that best-of-all synthesis helps on open-ended questions — and it comes
+   from the relative A/B signal, not the absolute 0-10 scores that previously
+   failed to replicate (p=0.32 at n=32).
+2. **The absolute-score Wilcoxon is still not significant at n=8 — expected
+   power failure, not a null.** p=0.25 with 8 pairs is meaningless either
+   way. The preference signal is the one with signal at this n.
+3. **Groundedness is the honest reality check.** FINAL raw 9.75 vs grounded
+   **8.09** → the finals share only ~57% of content with candidates; a real
+   slice of the judge's score is polish, not grounded substance. This is the
+   self-grading-circularity risk quantified.
+4. **Never-worse holds 100% under the independent judge** with zero guard
+   overrides.
+5. **Caveats:** n=8 is small and 6/0/2 sits exactly on the p=0.0312
+   boundary. This validates the methodology; the full **n=64 pro-judge run
+   (~5h)** is required to confirm the preference signal with real power — or
+   to honestly kill it.
