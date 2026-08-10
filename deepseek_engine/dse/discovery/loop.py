@@ -68,6 +68,9 @@ class DiscoveryConfig:
     # Phase 7 (compute optimization / Pareto, §13/§23)
     require_pareto: bool = False          # reject candidates whose compute didn't pay
     pareto_margin: float = 0.05           # quality-equivalence tolerance (success-rate)
+    # Phase 10 (meta-optimization, §24): biases WHICH mutation operator is
+    # chosen — the search-strategy knob the meta-level optimizes.
+    operator_weights: dict | None = None  # name -> weight (None = uniform)
 
 
 @dataclass
@@ -227,7 +230,8 @@ def discover(
         candidates: list[tuple[str, ArchGraph, str | None]] = []  # (op, graph, parent)
         for parent, _parent_name in population:
             for _ in range(cfg.candidates_per_parent):
-                res = random_mutation(parent, rng=rng, max_attempts=cfg.mutation_attempts)
+                res = random_mutation(parent, rng=rng, max_attempts=cfg.mutation_attempts,
+                                      operator_weights=cfg.operator_weights)
                 if res is not None:
                     op, cand = res
                     candidates.append((op, cand, parent.name))

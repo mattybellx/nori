@@ -355,18 +355,27 @@ def _unique_name(graph: ArchGraph, op: str) -> str:
 
 
 def random_mutation(graph: ArchGraph, rng: random.Random | None = None,
-                    max_attempts: int = 8) -> tuple[str, ArchGraph] | None:
+                    max_attempts: int = 8,
+                    operator_weights: dict[str, float] | None = None,
+                    ) -> tuple[str, ArchGraph] | None:
     """Apply one random operator, keeping only mutations that COMPILE (the
     Phase-3 gate). Returns ``(operator_name, new_graph)`` or None if no
     operator produced a valid graph. Deterministic when ``rng`` is seeded.
 
-    The candidate is renamed to a deterministic unique id (the parent is
-    never mutated — genealogy records the lineage, §29).
+    ``operator_weights`` biases WHICH operator is chosen (a discovery-strategy
+    knob — Phase 10 meta-optimization): operators with higher weight are
+    picked more often. The candidate is renamed to a deterministic unique id.
     """
     if rng is None:
         rng = random.Random()
+    names = [n for n, _ in _OPERATORS]
     for _ in range(max_attempts):
-        name, op = rng.choice(_OPERATORS)
+        if operator_weights:
+            weights = [max(float(operator_weights.get(n, 1.0)), 0.0) for n in names]
+            name = rng.choices(names, weights=weights)[0]
+            op = dict(_OPERATORS)[name]
+        else:
+            name, op = rng.choice(_OPERATORS)
         try:
             candidate = op(graph, rng)
             compile_graph(candidate)  # gate: must still compile

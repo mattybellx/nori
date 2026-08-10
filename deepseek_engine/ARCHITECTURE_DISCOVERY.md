@@ -358,6 +358,44 @@ set). The post-promotion graph-compile is verified by the promote test.
 
 **285 tests passing** (7 new in `tests/test_discovery_primitive_invention.py`).
 
+## What Phase 10 added (2026-08-11, DONE — 6 tests, ALL 10 PHASES COMPLETE)
+
+`dse/discovery/meta.py` — Level 3 of the spec's recursion: discovering better
+WAYS to discover (spec §24). Strictly bounded, auditable, and gated:
+
+- **`DiscoveryStrategy`** — a parameterization of the discovery loop (the
+  search-strategy knob): mutation-operator weights, n_rounds,
+  candidates_per_parent, beam_width, novelty_weight, crossover_per_round,
+  min_improvement. `random_mutation` now accepts `operator_weights` (biased
+  operator choice) and `DiscoveryConfig` threads them through `discover`.
+- **`run_discovery_strategy`** — runs the loop with a strategy and scores the
+  OUTCOME: promoted count, best promoted success on the held-out split,
+  improvement over the incumbent, candidates tested, and meta-efficiency
+  (improvement per 100 candidates).
+- **`meta_gate`** — the meta-level never-worse gate: a candidate strategy is
+  adopted ONLY if it strictly improves quality AND is at least as efficient
+  (quality-per-compute) as the default. A compute-heavy strategy with a small
+  gain is a frontier TRADE-OFF, not a clearly-better way to discover (§24
+  bounded). Reuses the Pareto honesty bar.
+- **`meta_search`** — Level-3 loop: runs every DECLARED strategy from the
+  catalog (`candidate_strategies`: default / quality_focused / cheap), picks
+  the winner by meta-efficiency, adopts it only through `meta_gate`. The
+  MetaReport is the audit trail (every strategy's outcome + the decision).
+
+**Demo (24-task mock, react incumbent)**: default → +0.167 improvement @ 43
+candidates (eff 0.39); **quality_focused** (weights: best_of_n_ify 4,
+duplicate_sequential 2, append_verify 1.5) → **+0.667 improvement @ 45
+candidates (eff 1.48)** — 4× the improvement at nearly the same compute →
+**ADOPTED**. cheap (fewer candidates) → +0.000 (too little search, not
+adopted). The meta-level discovered that biasing the search toward
+compute-expanding operators is a better discovery strategy.
+
+§24 discipline honored: the meta-level only SELECTS among the declared
+catalog — it never rewrites its own core; every run is recorded; adoption
+requires the gate.
+
+**291 tests passing** (6 new in `tests/test_discovery_meta.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -371,7 +409,9 @@ set). The post-promotion graph-compile is verified by the promote test.
 | **7 ✅** | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23/§40) | `ArchRunRecord` costs | Pareto frontier + efficiency + compression detection (10 tests — demonstrated) |
 | **8 ✅** | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch fixes failures w/o regression; compression halves compute at equal quality (8 tests — demonstrated) |
 | **9 ✅** | Novel primitive discovery: proposals with full contracts pass static/unit/adversarial/reference/sandbox gates before entering the registry (spec §38/§39) | compiler + registry | new primitives pass their contract tests (7 tests — majority_vote demonstrated) |
-| 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |
+| **10 ✅** | Meta-optimization: discover better DISCOVERY strategies (spec §24, Level 3) — bounded, auditable, gated | loop + Pareto + mutations | meta-level adopted a better discovery strategy (6 tests — demonstrated) |
+
+All ten phases of the spec's minimum viable implementation are complete.
 | 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
 | 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |
 
@@ -411,9 +451,39 @@ rec = ArchExecutor().run(compile_graph(reg.get("synthesis_pipeline").graph), tas
 print(rec.answer, rec.tokens_total, rec.success)
 ```
 
-## Honest status
+## Honest status (all 10 phases complete)
 
-Phase 1 proves the *representation and execution* substrate works and reuses
-existing infrastructure. It does NOT yet claim the research hypothesis — no
-architecture has been automatically discovered yet. That begins in Phase 3–4,
-and nothing is promoted until the independent-judge + never-worse gates pass.
+The full minimum viable implementation is done and tested (291 tests). What
+is TRUE and measured:
+
+- **Representation & execution** (Phases 1–2): architectures are executable
+  graphs that faithfully reproduce the strategies they wrap (zero mismatches).
+- **Discovery** (Phases 3–5): the loop + evolution discover architectures
+  that beat weak baselines on the mock (e.g. best_of_N-style expansions at
+  2× success with strict per-task never-worse); a statistical gate found and
+  fixed a real promotion-bug (the epsilon equality bug).
+- **Specialization** (Phase 6): adaptive routing learned per-class
+  specialization and beat the best single architecture on held-out (0.86 vs
+  0.71), always bounded by the oracle.
+- **Efficiency** (Phase 7): the Pareto frontier identifies the genuinely
+  optimal architectures; dominated ones (e.g. reflexion vs self_refine) and
+  compute-wasting candidates are flagged/rejected.
+- **Invention** (Phase 8): failure-driven responses fixed 8/19 of react's
+  failures with zero regressions; compression halved compute at identical
+  quality.
+- **New primitives** (Phase 9): majority_vote passed all §39 gates and was
+  admitted.
+- **Meta-optimization** (Phase 10): the system discovered that biasing the
+  search toward compute-expanding operators is a better way to discover
+  (+0.667 vs +0.167 improvement at the same compute) and adopted it via the
+  meta-gate.
+
+What is STILL NOT claimed (the research hypothesis is NOT proven):
+
+- Everything above is on the SEEDED MOCK with objective verifiers — the
+  "discovered architectures are genuinely better" claim has not yet been
+  tested against real-model, free-form, independent-judge evaluation (that is
+  the Phase-4+ result applied to the real domain — a future run, not a
+  completed one).
+- None of the promoted candidates have survived an independent LLM judge at
+  scale. That remains the honest frontier.

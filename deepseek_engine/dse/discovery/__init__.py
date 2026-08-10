@@ -58,6 +58,18 @@ from .loop import (
     promotion_gate,
     split_tasks,
 )
+from .meta import (
+    DiscoveryStrategy,
+    MetaOutcome,
+    MetaReport,
+    candidate_strategies,
+    cheap_strategy,
+    default_strategy,
+    meta_gate,
+    meta_search,
+    quality_focused_strategy,
+    run_discovery_strategy,
+)
 from .mutations import (
     append_verify,
     best_of_n_ify,
@@ -142,6 +154,10 @@ __all__ = [
     "compress_success", "CompressionReport",
     "PrimitiveProposal", "PrimitiveValidation",
     "validate_primitive", "promote_primitive", "propose_majority_vote",
+    "DiscoveryStrategy", "MetaOutcome", "MetaReport",
+    "default_strategy", "quality_focused_strategy", "cheap_strategy",
+    "candidate_strategies", "run_discovery_strategy", "meta_search",
+    "meta_gate",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
