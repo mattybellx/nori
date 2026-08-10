@@ -153,49 +153,49 @@
                    border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;letter-spacing:.03em;margin:0 2px}
   .verdict .wk{color:var(--muted);margin-top:6px;font-size:12.5px}
 
-  .card{position:relative;color:#f5f7ff;
-        background:linear-gradient(135deg,#155e75 0%,#0ea5e9 60%,#38bdf8 100%);
-        border:1px solid rgba(255,255,255,.16);border-radius:16px 16px 16px 4px;
-        padding:16px 18px;box-shadow:inset 0 1px 0 rgba(255,255,255,.14),var(--shadow);
+  .card{position:relative;color:var(--text);
+        background:linear-gradient(180deg,color-mix(in srgb,var(--panel2) 94%,var(--accent-soft)) 0%,var(--panel2) 60%);
+        border:1px solid var(--border);border-radius:18px;
+        padding:18px 20px;box-shadow:0 2px 14px rgba(0,0,0,.16);
         transition:transform .18s, box-shadow .2s, border-color .2s;animation:fade .3s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-  .card:hover{transform:translateY(-2px)}
-  .card.winner{border-color:#67e8f9;animation:winGlow 2.4s ease-in-out infinite}
-  @keyframes winGlow{0%,100%{box-shadow:0 0 0 1px #22d3ee,0 0 14px rgba(34,211,238,.35)}
-                     50%{box-shadow:0 0 0 1px #22d3ee,0 0 30px rgba(34,211,238,.55)}}
-  .card .body{font-size:15.5px;line-height:1.72;white-space:pre-wrap;overflow-wrap:anywhere;color:#fff;
-              font-weight:500;letter-spacing:.01em;text-shadow:0 1px 0 rgba(0,0,0,.10)}
-  .card .body b{color:#fff;font-weight:700}
-  .card .body h4{margin:.7em 0 .3em;font-size:15px;color:#fff}
-  .card .body code,.card .body .code{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14);
-                                     border-radius:6px;padding:1px 6px;font-size:13px;color:#e6ecff}
+  .card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--text) 16%,transparent)}
+  .card.winner{border-color:color-mix(in srgb,var(--accent) 48%,transparent);animation:winGlow 2.4s ease-in-out infinite}
+  @keyframes winGlow{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 34%,transparent),0 0 16px var(--accent-soft)}
+                     50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 48%,transparent),0 0 32px var(--accent-soft)}}
+  .card .body{font-size:15px;line-height:1.72;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);
+              font-weight:500;letter-spacing:.01em}
+  .card .body b{color:var(--text);font-weight:700}
+  .card .body h4{margin:.7em 0 .3em;font-size:15px;color:var(--text)}
+  .card .body code,.card .body .code{background:var(--chip);border:1px solid var(--border);
+                                     border-radius:6px;padding:1px 6px;font-size:13px;color:var(--accent2)}
   .card .body .code{display:block;padding:10px 12px;overflow-x:auto;margin:.4em 0}
-  .card .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:rgba(255,255,255,.72);
-              font-size:11.5px;margin-top:12px;font-variant-numeric:tabular-nums}
-  .card .meta .strat{color:rgba(255,255,255,.95);font-weight:700}
-  .card .bestpill{display:none;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
-                  color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+  .card .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);
+              font-size:11.5px;margin-top:14px;font-variant-numeric:tabular-nums}
+  .card .meta .strat{color:var(--text);font-weight:700}
+  .card .bestpill{display:none;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 36%,transparent);
+                  color:var(--accent2);font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.04em}
   .card.winner .bestpill{display:inline-block}
   .card .synthpill{display:none;color:#22d3ee;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.10);
-                   font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+                   font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.04em}
   .card.synthesized .synthpill{display:inline-block}
-  .card .actions{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
-  .card .btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);color:#fff;
-             border-radius:9px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;
+  .card .actions{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .card .btn{background:var(--chip);border:1px solid var(--border);color:var(--muted);
+             border-radius:10px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;
              transition:all .15s;font-family:var(--font)}
-  .card .btn:hover{border-color:#fff;background:rgba(255,255,255,.2)}
+  .card .btn:hover{border-color:var(--accent);color:var(--text);background:var(--accent-soft)}
   .card .btn:active{transform:scale(.95)}
-  .card .btn.on{background:#fff;border-color:#fff;color:#0e7490}
+  .card .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
   .card .btn.good.on{background:#22c55e;border-color:#22c55e;color:#fff}
   .card .btn.bad.on{background:#dc2626;border-color:#dc2626;color:#fff}
   .card .stars{display:flex;gap:2px;font-size:19px;cursor:pointer}
-  .card .stars span{color:rgba(255,255,255,.25);transition:color .15s;border:1px solid transparent;border-radius:6px;padding:0 2px}
-  .card .stars span:hover,.card .stars span.on{color:#fbbf24;border-color:rgba(255,255,255,.3)}
+  .card .stars span{color:color-mix(in srgb,var(--text) 18%,transparent);transition:color .15s;border:1px solid transparent;border-radius:6px;padding:0 2px}
+  .card .stars span:hover,.card .stars span.on{color:#fbbf24;border-color:color-mix(in srgb,var(--text) 20%,transparent)}
   .card .cmp{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .card .cmp .lbl{color:rgba(255,255,255,.65);font-size:11px}
+  .card .cmp .lbl{color:var(--muted);font-size:11px}
   .card .cmp .btn{font-size:12px;padding:5px 10px}
-  .card .cmp .cc{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);font-weight:600}
-  .card .cmp .cc:hover{background:#fff;border-color:#fff;color:#0e7490}
+  .card .cmp .cc{background:var(--chip);border-color:var(--border);font-weight:600}
+  .card .cmp .cc:hover{background:var(--accent);border-color:var(--accent);color:#fff}
 
   .thinking{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13.5px;padding:6px 4px}
   .thinking .dots span{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;
@@ -204,23 +204,21 @@
   .thinking .dots span:nth-child(3){animation-delay:.4s}
   @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
 
-  /* ---------- composer (animated gradient border) ---------- */
-  .composer-wrap{padding:16px 20px 12px;border-top:1px solid var(--border);
-                 background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);position:relative;z-index:1}
+  /* ---------- composer (clean premium bar, Grok-style) ---------- */
+  .composer-wrap{padding:16px 20px 14px;border-top:1px solid var(--border);
+                 background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);position:relative;z-index:1}
   .composer{max-width:820px;margin:0 auto;display:flex;align-items:flex-end;gap:10px;position:relative;
-            border:1px solid transparent;border-radius:16px;padding:10px 10px 10px 16px;
-            background:linear-gradient(var(--panel2),var(--panel2)) padding-box,
-                       conic-gradient(from var(--a,0deg),var(--accent),transparent 28%,transparent 72%,var(--accent)) border-box;
-            animation:borderSpin 6s linear infinite;
-            transition:box-shadow .2s}
-  .composer:focus-within{box-shadow:0 0 0 3px var(--accent-soft)}
-  @keyframes borderSpin{to{--a:360deg}}
+            border:1px solid var(--border);border-radius:18px;padding:10px 10px 10px 18px;
+            background:var(--panel2);box-shadow:0 2px 14px rgba(0,0,0,.18);
+            transition:border-color .2s, box-shadow .2s}
+  .composer:focus-within{border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+            box-shadow:0 0 0 3px var(--accent-soft),0 6px 26px rgba(0,0,0,.28)}
   textarea{flex:1;background:none;border:none;color:var(--text);font-family:var(--font);font-size:15px;
            resize:none;max-height:180px;line-height:1.5;outline:none;padding:6px 0}
   textarea::placeholder{color:var(--muted)}
-  .send{flex:none;width:38px;height:38px;border-radius:11px;border:none;background:var(--accent);color:#fff;
+  .send{flex:none;width:38px;height:38px;border-radius:12px;border:none;background:var(--accent);color:#fff;
         cursor:pointer;display:flex;align-items:center;justify-content:center;
-        transition:background .15s,opacity .15s,transform .15s;box-shadow:0 4px 18px var(--accent-soft)}
+        transition:background .15s,opacity .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 18px var(--accent-soft)}
   .send svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .send:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 26px var(--accent-soft)}
   .send:disabled{opacity:.45;cursor:not-allowed;transform:none}
@@ -472,7 +470,7 @@
         <div class="empty" id="empty">
           <div class="logo"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></div>
           <h2>Ask nori anything</h2>
-          <p>The best answer, with the thinking shown.</p>
+          <p>Smarter answers.</p>
           <p class="typinghint"><span class="dot"></span><span class="dot"></span><span class="dot"></span></p>
         </div>
       </div>
@@ -1010,7 +1008,7 @@ function emptyState(){
   clearChat();
   col.insertAdjacentHTML('beforeend',
     '<div class="empty" id="empty"><div class="logo"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 5.6L20 10l-5.6 2.4L12 18l-2.4-5.6L4 10l5.6-2.4z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></div>'+
-    '<h2>Ask nori anything</h2><p>The best answer, with the thinking shown.</p></div>');
+    '<h2>Ask nori anything</h2><p>Smarter answers.</p></div>');
 }
 function userBubble(text){
   $('#empty')&&$('#empty').remove();
