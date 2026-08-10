@@ -763,7 +763,7 @@ function workLog(g,line,opts){
     const open=det.classList.toggle('open');
     row.classList.toggle('open',open);
     chev.textContent=open?'▾':'›';
-    if(open)log.scrollTop=log.scrollHeight;
+    if(open){_wlFinishRow(row);log.scrollTop=log.scrollHeight;}
   });
   if(opts.key)st.rows[opts.key]=row;
   log.scrollTop=log.scrollHeight;
@@ -796,8 +796,7 @@ function workDoneRow(g,name){
   if(!autoMode)return;
   const row=_wlRow(g,name);
   if(!row)return;
-  // let the typewriter finish on its own (it completes in <= ~1.6s) so the
-  // streaming reveal is always visible, like Gemini / Grok
+  _wlFinishRow(row);                     // never leave the text half-revealed
   const status=row.querySelector('.wlstatus');
   status.innerHTML='<span class="wlok">✓</span>';
   const txt=row.querySelector('.wltext');if(txt)txt.textContent=name+' — done';
@@ -807,20 +806,25 @@ function workFailRow(g,name){
   if(!autoMode)return;
   const row=_wlRow(g,name);
   if(!row)return;
+  _wlFinishRow(row);
   const status=row.querySelector('.wlstatus');
   status.innerHTML='<span class="wlfail">✕</span>';
 }
 /* character-by-character reveal, like Gemini / Grok / ChatGPT: the model's
    text streams into view instead of appearing all at once. The server sends
-   each completion's full text in one SSE event, so we animate the reveal. */
-const _wlStream={};
+   each completion's full text in one SSE event, so we animate the reveal.
+   State is stored in a WeakMap keyed by the ELEMENT — a plain object keyed by
+   DOM nodes silently collides (all <div>s stringify to "[object HTMLDivElement]"),
+   which made every box share one stream and go blank. */
+const _wlStream=new WeakMap();
 function _wlScroll(el){
   if(el.scrollHeight>el.clientHeight)el.scrollTop=el.scrollHeight;
   const log=el.closest('.worklog');if(log)log.scrollTop=log.scrollHeight;
 }
 function _wlStreamInto(el,full){
   if(!el)return;
-  const s=_wlStream[el]||(_wlStream[el]={tgt:'',pos:0,timer:null});
+  let s=_wlStream.get(el);
+  if(!s){s={tgt:'',pos:0,timer:null};_wlStream.set(el,s);}
   s.tgt=full||'';
   if(s.pos>s.tgt.length)s.pos=s.tgt.length;
   if(!s.tgt){el.textContent='';return;}
@@ -837,6 +841,31 @@ function _wlStreamInto(el,full){
     }
   },10);
 }
+function _wlStreamFinish(el){
+  if(!el)return;
+  const s=_wlStream.get(el);
+  if(!s)return;
+  if(s.timer){clearInterval(s.timer);s.timer=null;}
+  el.textContent=s.tgt;
+  el.classList.remove('streaming');
+  s.pos=s.tgt.length;
+}
+function _wlFinishRow(row){
+  if(!row)return;
+  row.querySelectorAll('.trt,.tat').forEach(_wlStreamFinish);
+}
+/* background tabs throttle setInterval (to ~1s or worse), so a reveal can
+   crawl and leave text looking blank. When the tab comes back, snap every
+   in-flight stream to its full text. */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  document.querySelectorAll('.trt.streaming,.tat.streaming').forEach(el=>{
+    const s=_wlStream.get(el);
+    if(s&&s.timer){clearInterval(s.timer);s.timer=null;}
+    el.textContent=s?s.tgt:el.textContent;
+    el.classList.remove('streaming');
+  });
+});
 function workThink(g,strategy,reasoning,text){
   if(!autoMode)return;
   const row=workStrategy(g,strategy||'model');
@@ -1128,6 +1157,9 @@ function pickBest(fromLive){
     pick&&(pick.textContent='Pick best answer');
   }).catch(()=>{
     toastMsg('Could not pick a winner — is the server running?');
+    // never leave the user with a hidden answer: reveal the cards anyway
+    if(autoMode)revealWinnerOnly();
+    workDone(seq);
     pick&&(pick.textContent='Pick best answer');
   });
 }
@@ -1158,6 +1190,8 @@ function applySynthToWinner(g,win,answer,note){
   }
   c.classList.add('synthesized');
   if(note){const p=c.querySelector('.synthpill');if(p)p.title=note;}
+  // bring the final answer into view so the user sees it after the merge
+  c.scrollIntoView({block:'center',behavior:'smooth'});
 }
 function openCompare(cols,title,noteHtml,verdictHtml){
   const body=$('#cmpbody'),note=$('#cmpnote'),vHead=$('#cmpVerdict');
