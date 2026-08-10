@@ -127,6 +127,11 @@ class ArchExecutor:
         active_edges: set[tuple[str, str, str | None]] = set()
         executed: set[str] = set()
         last_out: NodeOutput | None = None
+        # The most recent textual content produced on the executed path.
+        # Needed because a terminal ``verify`` node yields a Verdict (whose
+        # text is "") — the answer TEXT lives on the node that fed it
+        # (extract/generate/strategy), and would otherwise be lost.
+        last_text = ""
 
         def in_edge_active(src: str, nid: str, port: str | None) -> bool:
             return ((src, nid, port) in active_edges or (src, nid, None) in active_edges)
@@ -158,6 +163,8 @@ class ArchExecutor:
             ctx.outputs[nid] = out
             executed.add(nid)
             last_out = out
+            if out.text:
+                last_text = out.text
             record.events.append(NodeEvent(
                 node_id=nid, primitive=node.primitive, kind=out.kind,
                 tokens_in=out.tokens_in, tokens_out=out.tokens_out,
@@ -182,6 +189,10 @@ class ArchExecutor:
         if final_out is None and executed:
             final_out = ctx.outputs[sorted(executed)[-1]]
         answer, success = _resolve_answer(final_out)
+        # A verify-node exit resolves to an empty answer (Verdict has no
+        # text); recover the answer from the last textual output on the path.
+        if not answer and last_text:
+            answer = last_text
         record.answer = answer
         record.success = success and record.error is None
         record.cost_usd = ctx.estimate_cost(record.tokens_in, record.tokens_out)

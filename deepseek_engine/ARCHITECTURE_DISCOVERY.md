@@ -396,6 +396,57 @@ requires the gate.
 
 **291 tests passing** (6 new in `tests/test_discovery_meta.py`).
 
+## The real-domain bridge (2026-08-11 — taking the laboratory to the real model)
+
+`dse/discovery/real_domain.py` — the honest frontier from the Honest-status
+section, made runnable: run DISCOVERED architectures on the REAL DeepSeek
+model over free-form questions, graded by the INDEPENDENT judge, with the
+exact machinery we validated in the free-form benchmark (robust median-N
+judge, question-aware scoring, the A/B preference judge, groundedness,
+sign test). Reuses `run_never_worse` helpers and `build_ask_pipeline`
+(real provider only — mock raises).
+
+- **`build_freeform_context(provider)`** — an `ExecutionContext` wired to the
+  real free-form domain: the ask-pipeline LLM + strategies as agents, and
+  `FreeFormJudge` as the verifier (so graph primitives `verify`/`verify_items`
+  run against real model grading).
+- **`run_architectures_real(graphs, questions, ctx)`** — every architecture
+  answers every question through `ArchExecutor`; answers are recorded even on
+  error (never silently dropped).
+- **`score_real(...)`** — the INDEPENDENT judge's robust median-N,
+  question-aware score per (architecture, question).
+- **`preference_real(...)`** — per-question A/B "which answer is better" for
+  each architecture vs the baseline (A = candidate, B = baseline) — the
+  relative judge that attacks grading noise most directly.
+- **`run_real_experiment(...)`** — orchestrates all of it into a
+  `RealDomainReport`: per-arch mean judge score, delta vs baseline,
+  never-worse count, substance-weighted groundedness (grounded_score vs the
+  baseline answers), and preference stats with the sign-test p.
+- **CLI**: `python -m dse.discovery.real_domain --provider deepseek
+  --judge-model deepseek-v4-pro --n 6 --samples 3 --out <abs path>` — the
+  pool is react (single-shot baseline) + `best_of_n_ify(react, 3)` (3 drafts,
+  judge-selected — the architecture discovered in Phase 3/4). JSON is written
+  FIRST (the data-loss lesson), then the table prints.
+- Honest protocol: the candidate's INTERNAL selection may use the self judge
+  (flash), but every claim is graded by the independent judge (pro) — the
+  circularity is broken exactly as in the free-form benchmark.
+
+**305 tests passing** (13 new in `tests/test_discovery_real_domain.py` —
+preference aggregation, sign-test wiring, summary math, groundedness
+averaging, report serialization; all mock-safe — the live experiment is an
+interactive CLI run, not a unit test; +1 regression test in
+`tests/test_discovery.py` for the answer-text fix below).
+
+**BUG FOUND + FIXED while running the first real experiment**: any graph
+whose EXIT node is a `verify` node silently recorded an EMPTY answer text —
+`_resolve_answer` returns the Verdict's (empty) text, and the answer text
+lived on the node feeding the verify node. Harmless while benchmarks only
+measured success rate (which is exactly why the mock never caught it); fatal
+for the real domain where the text IS the deliverable. Fixed in
+`executor.py`: track the last textual output on the executed path and recover
+it when the terminal resolves to an empty answer (with regression test).
+Full write-up: `SESSION_REAL_DOMAIN_BRIDGE.md` §4.
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -487,3 +538,27 @@ What is STILL NOT claimed (the research hypothesis is NOT proven):
   completed one).
 - None of the promoted candidates have survived an independent LLM judge at
   scale. That remains the honest frontier.
+
+### First real-domain measurement (2026-08-11 — the honest frontier, run #1)
+
+The bridge in `dse/discovery/real_domain.py` (see "The real-domain bridge"
+section above) produced the FIRST real-model, free-form, independent-judge
+measurement of a discovered architecture:
+
+- **Pool**: react (single-shot) vs `best_of_n_ify(react, 3)` (the architecture
+  the loop invented on the mock), 6 open-ended questions.
+- **Result**: candidate mean **8.33 vs 9.83** (delta **−1.5**, never-worse
+  4/6); relative preference **3 A / 0 B / 3 TIE**, sign-test **p=0.25**.
+- **Verdict: NO PROMOTION / INCONCLUSIVE.** The discovered best_of_N expansion
+  did not beat single-shot react under the independent judge. Both saturated
+  at 10.0 on the four easy questions (no headroom), and on the two harder ones
+  the candidate's INTERNAL self-judge selection picked drafts the independent
+  judge scored 6.0 and 4.0 (vs react 10.0/9.0) — best_of_N only pays off when
+  the internal selector is reliable AND there is headroom to gain.
+- **"I don't know" is the honest verdict** (spec §41): n=6 cannot reach
+  significance (6/6 would give p=0.03125; with 3/0/3 we get p=0.25).
+- The research hypothesis remains UNPROVEN — now with real evidence in both
+  directions to guide the next run (harder question subset, n≥8, and a
+  synthesis/merge candidate instead of pure judge-selection).
+
+Full write-up: `SESSION_REAL_DOMAIN_BRIDGE.md` §8.

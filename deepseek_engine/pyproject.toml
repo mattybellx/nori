@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "deepseek-engine"
+name = "nori"
 version = "0.1.0"
 description = "nori - evidence-driven agent orchestration with a bring-your-own-key chat UI"
 readme = "README.md"

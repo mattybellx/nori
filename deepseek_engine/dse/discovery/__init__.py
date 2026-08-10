@@ -134,6 +134,26 @@ from .routing import (
     run_routing_experiment,
 )
 
+# The real-domain bridge (real DeepSeek + independent judge) is exported
+# lazily: it imports the live provider stack, and eager import would break
+# `python -m dse.discovery.real_domain` (module already in sys.modules).
+_REAL_DOMAIN_EXPORTS = {
+    "RealDomainReport",
+    "build_freeform_context",
+    "build_summary",
+    "preference_real",
+    "run_architectures_real",
+    "run_real_experiment",
+    "score_real",
+}
+
+
+def __getattr__(name: str):
+    if name in _REAL_DOMAIN_EXPORTS:
+        from . import real_domain
+        return getattr(real_domain, name)
+    raise AttributeError(f"module 'dse.discovery' has no attribute {name!r}")
+
 __all__ = [
     "ArchEdge", "ArchGraph", "ArchNode",
     "ArchExecutor", "ArchRunRecord", "ArchitectureRegistry", "ArchRecord",
@@ -168,6 +188,10 @@ __all__ = [
     "tree_search_graph", "escalating_graph", "adaptive_graph", "multi_agent_graph",
     "synthesis_pipeline_graph", "disagreement_pipeline_graph",
     "default_baselines", "strategy_baselines",
+    # real-domain bridge (real DeepSeek + independent judge)
+    "RealDomainReport", "build_freeform_context", "build_summary",
+    "preference_real", "run_architectures_real", "run_real_experiment",
+    "score_real",
     # lifecycle states
     "GENERATED", "COMPILED", "SANITY_CHECKED", "BENCHMARKED",
     "INDEPENDENTLY_VERIFIED", "STATISTICALLY_VALIDATED", "CANDIDATE", "PROMOTED",

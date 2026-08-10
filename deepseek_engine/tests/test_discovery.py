@@ -192,6 +192,24 @@ def test_executor_synthesis_pipeline_on_catalog_task(tiny_stack, discovery_ctx):
     assert rec.answer != ""  # guard falls back to the winner if judge is missing
 
 
+def test_executor_best_of_n_ify_preserves_answer_text(tiny_stack, discovery_ctx):
+    """REGRESSION (real-domain bridge): a best_of_N expansion whose exit is a
+    ``verify`` node must still record the answer TEXT. The terminal Verdict
+    has no text, so the executor recovers it from the last textual output on
+    the path. Previously the answer was always "" — harmless while benchmarks
+    measured success rate only, fatal for the real-domain free-form
+    experiment where the answer text is the deliverable."""
+    from dse.discovery.mutations import best_of_n_ify
+
+    g = best_of_n_ify(react_graph(), "s", n=2)
+    task = _task(tiny_stack, 1)
+    rec = ArchExecutor().run(compile_graph(g), task, context=discovery_ctx)
+    assert any(e.primitive == "verify" for e in rec.events)
+    assert any(e.primitive == "extract" for e in rec.events)
+    assert rec.answer != ""
+    assert rec.answer is not None
+
+
 def test_executor_disagreement_routing_low_path(tiny_stack, discovery_ctx):
     """threshold > 0 with agreeing drafts -> 'low' path only; the targeted
     high-compute node must NOT execute."""
