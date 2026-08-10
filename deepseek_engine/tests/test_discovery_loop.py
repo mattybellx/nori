@@ -114,6 +114,31 @@ def test_gate_rejects_when_held_out_does_not_generalize():
     assert not gate["held_out_improvement"]
 
 
+def test_gate_rejects_equal_rates():
+    """Regression: an epsilon sign bug flipped strict `>` into allowing
+    EQUAL rates, promoting candidates identical to the incumbent. Equal
+    discovery AND equal held-out rates must never pass."""
+    cand = [True, True, True, False, False, False]
+    inc = [True, True, True, False, False, False]   # identical -> equal rates
+    held_c = [True, True, True]
+    held_i = [True, True, True]
+    gate = promotion_gate(cand, inc, held_c, held_i, ["a", "b", "c", "d", "e"])
+    assert not gate["passed"]
+    assert not gate["discovery_improvement"]
+    assert not gate["held_out_improvement"]
+
+
+def test_gate_requires_strict_rate_delta():
+    """min_improvement must require a REAL margin, not an epsilon."""
+    cand = [True, True, True, False, False]
+    inc = [True, True, True, False, False]   # same rate, different task ids
+    held_c = [True, True, False]
+    held_i = [True, True, False]
+    gate = promotion_gate(cand, inc, held_c, held_i, ["a", "b", "c", "d", "e"],
+                          min_improvement=0.1)
+    assert not gate["passed"]
+
+
 # ---------------------------------------------------------------------------
 # best_of_n_ify — the expansion operator the loop needs to win
 # ---------------------------------------------------------------------------

@@ -33,6 +33,14 @@ from .evaluate import (
 )
 from .executor import ArchExecutor, ArchRunRecord, NodeEvent
 from .graph import ArchEdge, ArchGraph, ArchNode, novelty_against, structural_similarity
+from .evolution import (
+    beam_score,
+    crossover,
+    crossover_children,
+    retire_unfit,
+    unique_child_name,
+    validate_statistical,
+)
 from .loop import (
     DiscoveryConfig,
     DiscoveryReport,
@@ -93,6 +101,8 @@ __all__ = [
     "register", "registered_names",
     "DiscoveryConfig", "DiscoveryReport", "RoundRecord",
     "discover", "promotion_gate", "split_tasks",
+    "crossover", "crossover_children", "unique_child_name",
+    "validate_statistical", "retire_unfit", "beam_score",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",

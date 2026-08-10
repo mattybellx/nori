@@ -172,6 +172,46 @@ hypothesis now has its first (small, mock-scale) positive instance.
 
 **235 tests passing** (9 new in `tests/test_discovery_loop.py`).
 
+## What Phase 5 added (2026-08-11, DONE — 13 tests)
+
+`dse/discovery/evolution.py` — evolutionary search on top of the loop:
+
+- **`crossover`** (§7) — combine the HEAD of architecture A with the TAIL of
+  B: A keeps everything upstream of a cut node, B keeps everything downstream
+  of a cut node, child = A-prefix → join → B-suffix (B's suffix renamed on
+  collision). Deterministic under a seeded RNG; `crossover_children` produces
+  compile-valid, uniquely-named children.
+- **`validate_statistical`** (§20) — the Phase-5 significance gate: two-sided
+  binomial **sign test** on paired wins + **bootstrap CI** on the success-rate
+  difference; `significant` requires p < α AND CI lower bound > 0.
+- **`retire_unfit`** (§18) — retire REJECTED candidates that never succeeded
+  in their fitness history (terminal state RETIRED).
+- **`beam_score`** (§16) — novelty-aware selection: base fitness + a small
+  novelty bonus so the beam does not greedily collapse onto one structure.
+- **Wired into `discover`**: `crossover_per_round`, `require_significance`
+  (the §20 gate), `alpha`, `novelty_weight`, `retire_after` config options;
+  crossover children get `source="crossed"` genealogy with two parents.
+
+**The statistical gate found a real bug in the Phase-4 gate** (the demo
+promoted 14 candidates, all statistically indistinguishable): the strict
+`>` comparison used `- 1e-9`, which flipped it into allowing EQUAL rates —
+candidates identical in performance to the incumbent were promoted by an
+epsilon. Fixed to `+ 1e-9` (strict improvement by MORE than delta), with
+regression tests (`test_gate_rejects_equal_rates`,
+`test_gate_requires_strict_rate_delta`). This is exactly the value of the
+§20 layer: it caught a subtle promotion bug the rate-level gate could not.
+
+**Honest status after the fix**: on the 24-task mock with a react incumbent,
+the loop still discovers strictly-better architectures (4 promoted over 3
+rounds, novelty 0.75–0.83), but the statistical gate honestly reports those
+small rate gains are NOT significant at this scale (p ≥ 0.5, CI spanning 0)
+— the system correctly says "I don't know" (§41). `require_significance=True`
+would promote nothing here; the significance function itself is unit-verified
+to catch genuinely-strong improvements (p=0.031, CI>0).
+
+**250 tests passing** (13 new in `tests/test_discovery_evolution.py` + 2
+regression tests in `test_discovery_loop.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -180,7 +220,7 @@ hypothesis now has its first (small, mock-scale) positive instance.
 | **2 ✅** | Validate + head-to-head the baseline graphs (Phase-2 gate: graph ≡ strategy) | `run_benchmark`, `run_never_worse` | baselines match the strategy results they wrap (8 equivalence tests) |
 | **3 ✅** | Mutation operators: insertion/deletion/substitution/reordering/duplication/branching/merging + compile-gated random mutation | `ArchGraph` + registry | each mutation compiles (16 tests) |
 | **4 ✅** | Discovery loop v0: population + beam, fitness from `ArchRunRecord`, promotion gate (improvement + no-regression + held-out generalization + structural distinctness) | registry, `harness` stats, mutations | a discovered candidate beats a baseline on held-out mock tasks (9 tests — demonstrated) |
-| 5 | Evolutionary search: selection, crossover, novelty preservation, retirement | Phase 4 loop | improvement survives bootstrap CI + sign test vs baselines |
+| **5 ✅** | Evolutionary search: crossover (head of A × tail of B), novelty-aware beam, retirement, statistical significance gate (sign test + bootstrap CI) | Phase 4 loop, `harness.sign_test`/`bootstrap_ci` | significance layer works + gate requires STRICT improvement (13 tests; significance gate found & fixed an epsilon bug) |
 | 6 | Adaptive routing: learn task-class → architecture via the profiler + bandit/UCB | `ProblemProfiler` (new) + Phase 5 | routing beats any single fixed architecture on held-out tasks |
 | 7 | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23) | `ArchRunRecord` costs | a Pareto-optimal point vs human baselines |
 | 8 | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch beats the failing baseline |

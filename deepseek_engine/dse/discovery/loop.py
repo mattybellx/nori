@@ -31,6 +31,12 @@ from .compiler import compile_graph
 from .evaluate import ArchBenchRow, BenchmarkResult, benchmark_architectures
 from .graph import ArchGraph, structural_similarity
 from .mutations import random_mutation
+from .evolution import (
+    beam_score,
+    crossover_children,
+    retire_unfit,
+    validate_statistical,
+)
 from .primitives import ExecutionContext
 from .registry import (
     ArchitectureRegistry,
@@ -52,6 +58,12 @@ class DiscoveryConfig:
     token_budget_mult: float = 3.0        # candidate tokens <= mult x incumbent
     min_improvement: float = 0.0          # success-rate delta required
     mutation_attempts: int = 6            # random_mutation max_attempts
+    # Phase 5 (evolution)
+    crossover_per_round: int = 2          # crossover children per round (§7)
+    require_significance: bool = False    # §20 gate: sign test + bootstrap CI
+    alpha: float = 0.05
+    novelty_weight: float = 0.0           # >0 adds a novelty bonus to beam (§16)
+    retire_after: bool = True             # retire rejected zero-success archs (§18)
 
 
 @dataclass
@@ -133,9 +145,12 @@ def promotion_gate(cand_oks, inc_oks, held_cand_oks, held_inc_oks,
     def rate(oks):
         return (sum(1 for o in oks if o) / len(oks)) if oks else 0.0
 
-    disc_improve = rate(cand_oks) > rate(inc_oks) + min_improvement - 1e-9
+    # strictly greater than the incumbent by MORE than the delta + epsilon
+    # (a bare ``- 1e-9`` here flipped `>` into allowing EQUALITY and promoted
+    # equal-rate candidates — caught by the Phase-5 statistical gate)
+    disc_improve = rate(cand_oks) > rate(inc_oks) + min_improvement + 1e-9
     no_regression = rate(cand_oks) >= rate(inc_oks) - 1e-9
-    held_improve = rate(held_cand_oks) > rate(held_inc_oks) + min_improvement - 1e-9
+    held_improve = rate(held_cand_oks) > rate(held_inc_oks) + min_improvement + 1e-9
     b01 = sum(1 for c, i in zip(cand_oks, inc_oks) if (not c) and i)
     never_worse = b01 == 0
     m = mcnemar(_rr("cand", task_ids, cand_oks), _rr("inc", task_ids, inc_oks))
@@ -263,6 +278,15 @@ def discover(
                 _successes(h_cand.runs), _successes(h_inc.runs),
                 [getattr(t, "id", str(t)) for t in discovery],
                 min_improvement=cfg.min_improvement)
+            # Phase-5 statistical gate: the edge must survive sign test + CI
+            if cfg.require_significance:
+                stats = validate_statistical(
+                    _successes(row.runs), _successes(inc_row.runs),
+                    [getattr(t, "id", str(t)) for t in discovery],
+                    seed=cfg.seed, alpha=cfg.alpha)
+                gate["statistics"] = stats
+                if not stats["significant"]:
+                    gate["passed"] = False
             if gate["passed"]:
                 registry.set_state(name, INDEPENDENTLY_VERIFIED)
                 registry.promote(name)
@@ -271,12 +295,33 @@ def discover(
                 registry.set_state(name, REJECTED)
                 report.rejected.append(name)
 
-        # next population = best beam from (eligible candidates + current)
+        # next population = best beam from (eligible candidates + current),
+        # with an optional novelty bonus, plus crossover children (§7)
+        def _key(item):
+            rate, avg, cand, parent = item
+            if cfg.novelty_weight > 0:
+                nov = registry.novelty(cand)["novelty_score"]
+                return (-beam_score(rate, nov, cfg.novelty_weight), -avg)
+            return (-rate, -avg)
+
         scored = [(row.success_rate, row.avg_verifier_score or 0.0, cand, parent)
                   for op, cand, parent, row in eligible]
-        scored.sort(key=lambda t: (-t[0], -t[1]))
+        scored.sort(key=_key)
         next_pop = [(cand, parent) for _, _, cand, parent in scored[:cfg.beam_width]]
         population = next_pop or population
+
+        # crossover: combine the top two of the current beam (§7)
+        crossed: list[tuple[ArchGraph, str | None]] = []
+        if cfg.crossover_per_round and len(population) >= 2:
+            for child_op, child in crossover_children(
+                    population[0][0], population[1][0],
+                    cfg.crossover_per_round, rng=rng):
+                if child.name not in registry:
+                    registry.register(child, source="crossed",
+                                      parent_ids=[population[0][0].name, population[1][0].name])
+                crossed.append((child, None))
+        if crossed:
+            population = population + crossed
 
         report.rounds.append(RoundRecord(
             round_idx + 1, len(eligible),
@@ -284,6 +329,8 @@ def discover(
             best_candidate=(scored[0][2].name if scored else None),
             best_success=(scored[0][0] if scored else 0.0)))
 
+    if cfg.retire_after:
+        retire_unfit(registry)
     return report
 
 
