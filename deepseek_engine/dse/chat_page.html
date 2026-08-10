@@ -353,36 +353,59 @@
 
   /* ---------- live workflow thinking ---------- */
   .work{margin:4px 0 0;display:flex;flex-direction:column;gap:8px}
-  .workbar{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:600}
-  .workbar .wdot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none;animation:blink 1.2s infinite}
+  .workbar{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);font-weight:600;
+           padding:9px 12px;border:1px solid var(--border);border-radius:12px;background:var(--panel2)}
+  .wspin{width:15px;height:15px;flex:none;border-radius:50%;
+         border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);
+         animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
   .workbar .workmsg{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .workbar .wprog{flex:none;width:86px;height:4px;border-radius:4px;background:var(--chip);overflow:hidden}
+  .workbar .wprog i{display:block;height:100%;width:0%;border-radius:4px;
+                    background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s ease}
   .worktoggle{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;
               padding:4px 10px;font-size:11.5px;cursor:pointer;font-family:var(--font);font-weight:600;white-space:nowrap}
   .worktoggle:hover{border-color:var(--accent);color:var(--text)}
-  .worklog{display:none;max-height:240px;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);
-           border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:11.5px;color:var(--muted);
-           line-height:1.75;flex-direction:column;gap:2px}
+  .worklog{display:none;max-height:300px;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);
+           border-radius:12px;padding:8px 10px;font-family:var(--font);font-size:13px;color:var(--muted);
+           line-height:1.6;flex-direction:column;gap:2px}
   .worklog.open{display:flex}
-  .worklog .wl::before{content:"› ";color:var(--accent2)}
-  .worklog .think{display:flex;flex-direction:column;gap:4px;margin:6px 0 2px;border-top:1px dashed var(--border);padding-top:6px}
-  .worklog .thinkhead{display:flex;align-items:center;gap:8px}
-  .worklog .thinkhead .tl{font-weight:800;color:var(--accent2);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase}
-  .worklog .thinkhead .thinktoggle{margin-left:auto;background:var(--chip);border:1px solid var(--border);color:var(--muted);
-                                   border-radius:6px;width:20px;height:20px;line-height:1;font-size:13px;cursor:pointer;
-                                   font-family:var(--mono)}
-  .worklog .thinkhead .thinktoggle:hover{border-color:var(--accent);color:var(--text)}
-  .worklog .thinkbody{display:flex;flex-direction:column;gap:6px}
-  .worklog .thinkbody.closed{display:none}
-  .worklog .tr,.worklog .ta{display:flex;flex-direction:column;gap:2px}
-  .worklog .trl,.worklog .tal{font-weight:700;color:var(--muted);font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+  .worklog .wl{display:flex;align-items:flex-start;gap:8px;border-radius:8px;padding:4px 6px;cursor:pointer;
+               transition:background .12s}
+  .worklog .wl:hover{background:color-mix(in srgb,var(--text) 6%,transparent)}
+  .worklog .wl .wchev{flex:none;color:var(--accent2);font-size:11px;line-height:1.9;width:10px;
+                      transition:transform .15s;font-family:var(--mono)}
+  .worklog .wl.open>.wchev{transform:rotate(90deg)}
+  .worklog .wl .wltext{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .worklog .wl .wlstatus{flex:none;display:flex;align-items:center}
+  .worklog .wl .wlstatus .wlsp{width:11px;height:11px;border-radius:50%;
+     border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);
+     animation:spin .8s linear infinite}
+  .worklog .wl .wlstatus .wlok{color:var(--good);font-weight:800}
+  .worklog .wl .wlstatus .wlfail{color:var(--bad);font-weight:800}
+  .worklog .wl .wldet{display:none;flex-direction:column;gap:6px;width:100%;margin:4px 0 2px 18px;
+                      padding-left:10px;border-left:1px solid var(--border)}
+  .worklog .wl.open>.wldet{display:flex}
+  .worklog .wl.section{font-weight:700;color:var(--text)}
+  .worklog .wl.section>.wldet{margin-left:0;border-left:none;padding-left:6px}
+  .worklog .think{display:flex;flex-direction:column;gap:6px}
+  .worklog .thinkhead{display:flex;align-items:center;gap:8px;margin-top:2px}
+  .worklog .thinkhead .tl{font-weight:800;color:var(--accent2);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+  .worklog .thinkhead .tlsp{width:11px;height:11px;border-radius:50%;
+     border:2px solid color-mix(in srgb,var(--accent) 30%,transparent);border-top-color:var(--accent);
+     animation:spin .8s linear infinite}
+  .worklog .tr,.worklog .ta{display:flex;flex-direction:column;gap:3px}
+  .worklog .trl,.worklog .tal{font-weight:700;color:var(--muted);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase}
   .worklog .trl{color:var(--warn)}
   .worklog .tal{color:var(--good)}
   .worklog .trt,.worklog .tat{font-family:var(--font);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text);
-                              font-size:12px;line-height:1.6;max-height:220px;overflow-y:auto;
+                              font-size:13.5px;line-height:1.6;max-height:240px;overflow-y:auto;
                               background:color-mix(in srgb,var(--bg) 55%,transparent);border:1px solid var(--border);
-                              border-radius:8px;padding:6px 9px}
-  .work.done .wdot{background:var(--good);animation:none}
+                              border-radius:10px;padding:8px 12px}
+  .work.done .wspin{display:none}
+  .work.done .workbar::before{content:"✓ ";color:var(--good);font-weight:800}
   .work.done .workbar .workmsg{color:var(--good)}
+  .work.done .wprog i{width:100%!important;background:var(--good)}
 
   /* gallery nav in the answer popup */
   .galnav{display:none}
@@ -691,54 +714,138 @@ function revealWinnerOnly(){
 applyMode();
 
 /* ---------- live workflow thinking ---------- */
+/* Every step is a collapsible row: click its red chevron to expand and watch
+   the model's thinking stream in live. Strategy rows nest under the workflow
+   section; their reasoning + answer update in place as the SSE arrives. */
+const _wlState={}; // g -> {section: element|null, rows: {key: row}}
+function _wlInit(g){_wlState[g]={section:null,rows:{}};}
+function _wlRow(g,key){const s=_wlState[g];return s&&s.rows[key];}
 function workInit(g){
   if(!autoMode)return;
   const el=$('#work-'+g);if(!el)return;
   const log=$('#worklog-'+g),tog=$('#worktoggle-'+g);
+  _wlInit(g);
   if(log)log.innerHTML='';
   if(tog)tog.onclick=()=>{
     const open=(tog.textContent==='Show thinking');
     log.classList.toggle('open',open);
     tog.textContent=open?'Hide thinking':'Show thinking';
+    if(open)log.scrollTop=log.scrollHeight;
   };
+  // auto-open: the brand promise is "with the thinking shown"
+  if(log)log.classList.add('open');
+  if(tog)tog.textContent='Hide thinking';
   workLog(g,'Question received');
 }
-function workLog(g,line){
+function workLog(g,line,opts){
   if(!autoMode)return;
-  const log=$('#worklog-'+g),msg=$('#workmsg-'+g);
-  if(log){const d=document.createElement('div');d.className='wl';d.textContent=line;
-    log.appendChild(d);log.scrollTop=log.scrollHeight;}
-  if(msg&&line)msg.textContent=line;
+  const log=$('#worklog-'+g);if(!log)return;
+  opts=opts||{};
+  const st=_wlState[g]||_wlInit(g);
+  const row=document.createElement('div');
+  row.className='wl'+(opts.section?' section':'');
+  if(opts.key)row.dataset.key=opts.key;
+  const chev=document.createElement('span');chev.className='wchev';chev.textContent='›';
+  const txt=document.createElement('span');txt.className='wltext';txt.textContent=line;
+  const status=document.createElement('span');status.className='wlstatus';
+  const det=document.createElement('div');det.className='wldet';
+  row.appendChild(chev);row.appendChild(txt);row.appendChild(status);row.appendChild(det);
+  let target=log;
+  if(!opts.section&&!opts.closeSection&&st.section)target=st.section;
+  target.appendChild(row);
+  if(opts.section)st.section=det;           // strategy rows nest inside this section
+  if(opts.closeSection)st.section=null;     // end the section
+  row.addEventListener('click',function(ev){
+    if(ev.target.closest('button'))return;
+    const open=det.classList.toggle('open');
+    row.classList.toggle('open',open);
+    chev.textContent=open?'▾':'›';
+    if(open)log.scrollTop=log.scrollHeight;
+  });
+  if(opts.key)st.rows[opts.key]=row;
+  log.scrollTop=log.scrollHeight;
+  const msg=$('#workmsg-'+g);if(msg)msg.textContent=line;
+  return row;
+}
+function _wlOpen(row){
+  if(!row)return;
+  const det=row.querySelector('.wldet'),chev=row.querySelector('.wchev');
+  if(det&&!det.classList.contains('open')){det.classList.add('open');row.classList.add('open');}
+  if(chev)chev.textContent='▾';
+}
+function workStrategy(g,name){
+  if(!autoMode)return null;
+  let row=_wlRow(g,name);
+  if(!row){
+    row=workLog(g,name+' — working…',{key:name});
+    if(!row)return null;
+    row.dataset.strategy=name;
+    _wlState[g].rows[name]=row;
+  }
+  const status=row.querySelector('.wlstatus');
+  status.innerHTML='<span class="wlsp"></span>';
+  _wlOpen(row);                       // live thinking is visible by default
+  if(_wlState[g].section){const sec=_wlState[g].section.closest('.wl');if(sec)_wlOpen(sec);}
+  return row;
+}
+function workDoneRow(g,name){
+  if(!autoMode)return;
+  const row=_wlRow(g,name);
+  if(!row)return;
+  const status=row.querySelector('.wlstatus');
+  status.innerHTML='<span class="wlok">✓</span>';
+  const txt=row.querySelector('.wltext');if(txt)txt.textContent=name+' — done';
+  const sp=row.querySelector('.thinkhead .tlsp');if(sp)sp.remove();
+}
+function workFailRow(g,name){
+  if(!autoMode)return;
+  const row=_wlRow(g,name);
+  if(!row)return;
+  const status=row.querySelector('.wlstatus');
+  status.innerHTML='<span class="wlfail">✕</span>';
 }
 function workThink(g,strategy,reasoning,text){
   if(!autoMode)return;
-  const log=$('#worklog-'+g);if(!log)return;
-  const d=document.createElement('div');d.className='think';
-  const head=document.createElement('div');head.className='thinkhead';
-  const lab=document.createElement('span');lab.className='tl';lab.textContent=strategy+' · thinking';
-  const tog=document.createElement('button');tog.className='thinktoggle';tog.textContent='−';
-  tog.onclick=()=>{
-    const closed=d.querySelector('.thinkbody').classList.toggle('closed');
-    tog.textContent=closed?'+':'−';
-  };
-  head.appendChild(lab);head.appendChild(tog);
-  const body=document.createElement('div');body.className='thinkbody';
+  const row=workStrategy(g,strategy||'model');
+  if(!row)return;
+  let think=row.querySelector('.think');
+  if(!think){
+    think=document.createElement('div');think.className='think';
+    const head=document.createElement('div');head.className='thinkhead';
+    const sp=document.createElement('span');sp.className='tlsp';
+    const lab=document.createElement('span');lab.className='tl';lab.textContent=(strategy||'model')+' · thinking';
+    head.appendChild(sp);head.appendChild(lab);
+    const body=document.createElement('div');body.className='thinkbody';
+    think.appendChild(head);think.appendChild(body);
+    row.querySelector('.wldet').appendChild(think);
+  }
+  const body=think.querySelector('.thinkbody');
   if(reasoning&&reasoning.trim()){
-    const r=document.createElement('div');r.className='tr';
-    const rl=document.createElement('span');rl.className='trl';rl.textContent='Reasoning';
-    const rt=document.createElement('div');rt.className='trt';rt.textContent=reasoning;
-    r.appendChild(rl);r.appendChild(rt);body.appendChild(r);
+    let r=think.querySelector('.tr');
+    if(!r){
+      r=document.createElement('div');r.className='tr';
+      const rl=document.createElement('span');rl.className='trl';rl.textContent='Reasoning';
+      const rt=document.createElement('div');rt.className='trt';
+      r.appendChild(rl);r.appendChild(rt);body.appendChild(r);
+    }
+    think.querySelector('.trt').textContent=reasoning;
   }
   if(text&&text.trim()){
-    const a=document.createElement('div');a.className='ta';
-    const al=document.createElement('span');al.className='tal';al.textContent='Final answer';
-    const at=document.createElement('div');at.className='tat';at.textContent=text;
-    a.appendChild(al);a.appendChild(at);body.appendChild(a);
+    let a=think.querySelector('.ta');
+    if(!a){
+      a=document.createElement('div');a.className='ta';
+      const al=document.createElement('span');al.className='tal';al.textContent='Answer';
+      const at=document.createElement('div');at.className='tat';
+      a.appendChild(al);a.appendChild(at);body.appendChild(a);
+    }
+    think.querySelector('.tat').textContent=text;
   }
-  d.appendChild(head);d.appendChild(body);
-  log.appendChild(d);
-  log.scrollTop=log.scrollHeight;
+  const log=$('#worklog-'+g);if(log)log.scrollTop=log.scrollHeight;
   const msg=$('#workmsg-'+g);if(msg)msg.textContent=(strategy||'model')+' is thinking…';
+}
+function setWorkProg(g,done,total){
+  const bar=$('#work-'+g+' .wprog i');if(!bar||!total)return;
+  bar.style.width=Math.max(0,Math.min(100,Math.round(100*done/total)))+'%';
 }
 function workDone(g){
   if(!autoMode)return;
@@ -881,7 +988,8 @@ function userBubble(text){
        <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
      </div>`+
     (autoMode?`<div class="work" id="work-${seq}">
-       <div class="workbar"><span class="wdot"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
+       <div class="workbar"><span class="wspin"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
+       <span class="wprog"><i></i></span>
        <button class="worktoggle" id="worktoggle-${seq}">Show thinking</button></div>
        <div class="worklog" id="worklog-${seq}"></div></div>`:''));
   insertSteps();
@@ -1095,14 +1203,20 @@ function ask(){
   currentQ=text;activeQ=text;
   busy=true;send.disabled=true;q.value='';q.style.height='auto';
   userBubble(text);
-  if(autoMode){workInit(seq);workLog(seq,'Starting full workflow…');}
+  if(autoMode){workInit(seq);workLog(seq,'Starting full workflow…',{section:true});}
   else thinking(true);
   refreshArbiter();
   const pick=$('#pick-'+seq);pick&&(pick.textContent='Pick best answer');
   const es=new EventSource('/ask?question='+encodeURIComponent(text)+'&mode='+(autoMode?'auto':'dev'));
   es.addEventListener('progress',e=>{
     const d=JSON.parse(e.data);
-    if(autoMode&&d.message&&!/: done$/.test(d.message))workLog(seq,d.message);
+    if(!autoMode)return;
+    const m=d.message||'';
+    setWorkProg(seq,d.done||0,d.total||0);
+    if(/: done$/.test(m))workDoneRow(seq,m.replace(/: done$/,''));
+    else if(/: working…$/.test(m))workStrategy(seq,m.replace(/: working…$/,''));
+    else if(/: failed/.test(m))workFailRow(seq,(m.split(':')[0]||'model').trim());
+    else if(m)workLog(seq,m);
   });
   es.addEventListener('thinking',e=>{
     const d=JSON.parse(e.data);
@@ -1112,7 +1226,7 @@ function ask(){
   es.addEventListener('done',e=>{
     es.close();busy=false;send.disabled=false;winner=null;refreshArbiter();
     const pick2=$('#pick-'+seq);if(pick2)pick2.disabled=false;
-    if(autoMode){workLog(seq,'All strategies done — choosing the best…');pickBest(true);}
+    if(autoMode){workLog(seq,'All strategies done — choosing the best…',{closeSection:true});pickBest(true);}
     loadHistory();loadStats();
   });
   es.onerror=()=>{es.close();busy=false;send.disabled=false;thinking(false);refreshArbiter();
@@ -1155,7 +1269,8 @@ function loadQuestion(text){
          <button class="ghost" id="cmp-${seq}" disabled>Compare side by side</button>
        </div>`+
       (autoMode?`<div class="work" id="work-${seq}">
-       <div class="workbar"><span class="wdot"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
+       <div class="workbar"><span class="wspin"></span><span class="workmsg" id="workmsg-${seq}">nori is working…</span>
+       <span class="wprog"><i></i></span>
        <button class="worktoggle" id="worktoggle-${seq}">Show thinking</button></div>
        <div class="worklog" id="worklog-${seq}"></div></div>`:''));
     insertSteps();
