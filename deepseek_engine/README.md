@@ -227,6 +227,21 @@ Every run prints color-coded tables with McNemar significance, bootstrap
 confidence intervals, latency, tokens and cost, and writes JSON records to
 `benchmarks/results/`.
 
+The **never-worse benchmark** measures the "never worse than your best
+candidate" guarantee (selection + synthesis guards) against ground truth on
+the checkable suites, and against a de-noised judge on open-ended questions:
+
+```bash
+python -m dse.benchmarks.run_never_worse --provider mock --suite all --n-tasks 48
+python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 32
+# grade with an INDEPENDENT model to break self-grading circularity:
+python -m dse.benchmarks.run_never_worse --provider deepseek --suite free --n-tasks 32 --judge-model deepseek-v4-pro
+```
+
+The free suite (32 open-ended questions, no ground truth) reports paired
+**Wilcoxon signed-rank** significance on the judge scores, not just averages —
+so a 6→8 improvement counts, not just a flipped pass/fail bit.
+
 ## Providers
 
 All providers speak the OpenAI-compatible chat-completions API via a single

@@ -1,0 +1,79 @@
+{
+  "summary": {
+    "n": 4,
+    "provider": "deepseek",
+    "suite": "free",
+    "judge_samples": 3,
+    "judge_model": "self (same model as answers)",
+    "baseline_quality_avg": 9.25,
+    "winner_quality_avg": 9.25,
+    "final_quality_avg": 9.5,
+    "never_worse_judge": 1.0,
+    "never_worse_count": 4,
+    "sometimes_better": 2,
+    "wilcoxon_final_vs_baseline": {
+      "w": 4.0,
+      "p": 1.0,
+      "n": 4
+    },
+    "wilcoxon_final_vs_winner": {
+      "w": 1.0,
+      "p": 1.0,
+      "n": 4
+    },
+    "wilcoxon_winner_vs_baseline": {
+      "w": 1.5,
+      "p": 1.0,
+      "n": 4
+    },
+    "selection_guard_fired": 0,
+    "synthesis_guard_fired": 1,
+    "elapsed_s": 438.8
+  },
+  "rows": [
+    {
+      "question": "Explain how quantum entanglement works in simple terms.",
+      "winner_strategy": "react",
+      "used_synth": false,
+      "selection_fired": false,
+      "synthesis_fired": true,
+      "baseline_quality": 10.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "synthesis 9.0 < winner 10.0 - margin 0.5 -> winner"
+    },
+    {
+      "question": "What are the main pros and cons of remote work?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.41) and score 9.0 >= winner 8.0"
+    },
+    {
+      "question": "Explain the difference between machine learning and deep learning.",
+      "winner_strategy": "self_refine",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.51) and score 10.0 >= winner 10.0"
+    },
+    {
+      "question": "How would you explain recursion to a five-year-old?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 8.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.60) and score 7.0 >= winner 7.0"
+    }
+  ]
+}

@@ -115,6 +115,74 @@ def bootstrap_ci(
     return lo, hi, point
 
 
+def _normal_cdf(z: float) -> float:
+    """Standard normal CDF via ``math.erf`` (dependency-free)."""
+    return 0.5 * (1.0 + math.erf(z / math.sqrt(2.0)))
+
+
+def wilcoxon_signed_rank(
+    a: list[float], b: list[float], exact_max_n: int = 16, seed: int = 0
+) -> tuple[float, float]:
+    """Two-sided paired Wilcoxon signed-rank test on continuous scores.
+
+    Returns ``(w_plus, p_value)`` — the sum of ranks of the positive
+    differences and the two-sided p-value against "no difference".
+
+    Zero-difference pairs are dropped; tied absolute differences get average
+    ranks. For ``n <= exact_max_n`` the p-value is exact (enumerates all 2**n
+    sign assignments); otherwise a normal approximation with continuity and
+    tie corrections is used. This is the right test for the free-form
+    benchmark, where the quality metric is a (de-noised) judge score rather
+    than a pass/fail bit — McNemar can't see a 6 -> 8 improvement, Wilcoxon
+    can.
+    """
+    if len(a) != len(b):
+        raise ValueError("wilcoxon requires paired samples of equal length")
+    diffs = [float(x) - float(y) for x, y in zip(a, b)]
+    diffs = [d for d in diffs if abs(d) > 1e-12]
+    n = len(diffs)
+    if n == 0:
+        return 0.0, 1.0
+    # rank |differences|, using average ranks for ties
+    order = sorted(range(n), key=lambda i: abs(diffs[i]))
+    ranks = [0.0] * n
+    tie_sizes: list[int] = []
+    i = 0
+    while i < n:
+        j = i
+        while j + 1 < n and abs(abs(diffs[order[j + 1]]) - abs(diffs[order[i]])) <= 1e-12:
+            j += 1
+        avg = (i + 1 + j + 1) / 2.0
+        for k in range(i, j + 1):
+            ranks[order[k]] = avg
+        tie_sizes.append(j - i + 1)
+        i = j + 1
+    w_plus = sum(ranks[k] for k in range(n) if diffs[k] > 0)
+    w_obs = min(w_plus, n * (n + 1) / 2.0 - w_plus)
+
+    if n <= exact_max_n:
+        total = 2 ** n
+        count = 0
+        for mask in range(total):
+            wp = 0.0
+            for k in range(n):
+                if (mask >> k) & 1:
+                    wp += ranks[k]
+            if wp <= w_obs + 1e-12:
+                count += 1
+        return w_plus, min(1.0, 2.0 * count / total)
+
+    # normal approximation: E = n(n+1)/4, tie-corrected variance, CC 0.5
+    mu = n * (n + 1) / 4.0
+    var = n * (n + 1) * (2 * n + 1) / 24.0
+    for t in tie_sizes:
+        if t > 1:
+            var -= (t ** 3 - t) / 48.0
+    z = (w_obs - mu + 0.5) / math.sqrt(max(var, 1e-12))
+    p = 2.0 * (1.0 - _normal_cdf(abs(z)))
+    return w_plus, min(1.0, p)
+
+
 # ---------------------------------------------------------------------------
 # Harness
 # ---------------------------------------------------------------------------

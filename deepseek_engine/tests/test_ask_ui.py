@@ -450,6 +450,228 @@ def test_synthesize_endpoint(tmp_path, monkeypatch):
         server.shutdown()
 
 
+# ---------------------------------------------------------------------------
+# Never-worse guards on the LIVE HTTP paths
+# ---------------------------------------------------------------------------
+def _guard_scripted_server(arbiter_pick=1,
+                           synth_text="The sky looks blue because of Rayleigh scattering and atmospheric scattering.",
+                           judge_synth="SCORE: 3/10",
+                           judge_winner="SCORE: 8/10",
+                           judge_generic="SCORE: 7/10"):
+    """Scripted provider with knobs for the never-worse guard tests.
+
+    - ``arbiter_pick``: 1-based index the arbiter chooses in /pickbest.
+    - ``synth_text``: what the synthesizer returns (must share bigrams with the
+      winner answer to count as "grounded").
+    - ``judge_synth`` / ``judge_winner``: replies for ``_score_text`` on the
+      synthesis vs the winner answer. The judge prompt embeds the answer text,
+      so the server tells them apart via ``synth_text[:50]``.
+    """
+    captured = {"n": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length))
+            captured["n"] += 1
+            system = body["messages"][0]["content"]
+            if "MODE: grade" in system:
+                content = judge_generic
+            elif "Pick the single best answer" in system:
+                content = f"BEST: {arbiter_pick}\nREASON: the chosen answer is best\nWEAKNESS: minor"
+            elif "calibrated answer grader" in system:
+                if synth_text and synth_text[:50] in system:
+                    content = judge_synth
+                else:
+                    content = judge_winner
+            elif "answer synthesizer" in system:
+                content = synth_text
+            else:
+                content = "The sky looks blue because of Rayleigh scattering."
+            payload = {
+                "choices": [{"message": {"content": content}}],
+                "usage": {"prompt_tokens": 40, "completion_tokens": 12},
+            }
+            data = json.dumps(payload).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, captured
+
+
+def _post(root, path, body):
+    import urllib.request
+
+    req = urllib.request.Request(
+        root + path,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json"}, method="POST",
+    )
+    return json.loads(urllib.request.urlopen(req, timeout=15).read().decode("utf-8"))
+
+
+def _start_guard_chat(server, tmp_path, monkeypatch):
+    """Boot a ChatServer whose provider is ``server``; returns (srv, root)."""
+    from dse import ask as ask_mod
+    from dse import chat as chat_mod
+
+    base = f"http://127.0.0.1:{server.server_port}"
+    monkeypatch.setenv("DSE_PROVIDER_URL", base)
+    pipeline = chat_mod.build_pipeline("deepseek", None, None)
+    monkeypatch.setattr(ask_mod, "SESSIONS_DIR", tmp_path / "sessions")
+    srv = chat_mod.ChatServer(("127.0.0.1", 0), chat_mod.ChatHandler, pipeline, threading.Lock())
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    return srv, f"http://127.0.0.1:{srv.server_address[1]}"
+
+
+def test_synthesize_guard_ships_and_saves_winner(tmp_path, monkeypatch):
+    """A grounded synthesis scored >= the winner ships (guard='shipped') and
+    save_winner persists it onto the winner's record."""
+    import urllib.parse
+    import urllib.request
+
+    from dse import ask as ask_mod
+
+    server, _ = _guard_scripted_server(judge_synth="SCORE: 8/10", judge_winner="SCORE: 7/10")
+    try:
+        srv, root = _start_guard_chat(server, tmp_path, monkeypatch)
+        try:
+            url = root + "/ask?question=" + urllib.parse.quote("why is the sky blue?")
+            urllib.request.urlopen(url, timeout=30).read()
+            d = _post(root, "/synthesize",
+                      {"question": "why is the sky blue?", "winner": "react", "save_winner": True})
+            assert d["ok"] is True
+            assert d["guard"] == "shipped"
+            assert d["answer"] and "Rayleigh" in d["answer"]
+            records = ask_mod.load_records()
+            assert any(r["strategy"] == "react" and r.get("synthesized") for r in records)
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
+def test_synthesize_guard_falls_back_when_ungrounded(tmp_path, monkeypatch):
+    """A synthesis sharing no bigrams with any candidate is ungrounded -> the
+    guard falls back to the winner verbatim and save_winner is NOT persisted."""
+    import urllib.parse
+    import urllib.request
+
+    from dse import ask as ask_mod
+
+    server, _ = _guard_scripted_server(
+        synth_text="Mars has two small moons and a thin carbon dioxide atmosphere.")
+    try:
+        srv, root = _start_guard_chat(server, tmp_path, monkeypatch)
+        try:
+            url = root + "/ask?question=" + urllib.parse.quote("why is the sky blue?")
+            urllib.request.urlopen(url, timeout=30).read()
+            d = _post(root, "/synthesize",
+                      {"question": "why is the sky blue?", "winner": "react", "save_winner": True})
+            assert d["ok"] is True
+            assert d["guard"] == "fell_back"
+            # final answer IS the winner's original answer, verbatim
+            assert d["answer"] == "The sky looks blue because of Rayleigh scattering."
+            assert "never-worse guard" in d["note"]
+            assert not any(r.get("synthesized") for r in ask_mod.load_records())
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
+def test_synthesize_guard_falls_back_when_scored_below_winner(tmp_path, monkeypatch):
+    """A grounded synthesis the judge scores below the winner by more than the
+    margin is rejected: guard='fell_back', answer is the winner's, not saved."""
+    import urllib.parse
+    import urllib.request
+
+    from dse import ask as ask_mod
+
+    server, _ = _guard_scripted_server(
+        synth_text="The sky looks blue because of Rayleigh scattering and atmospheric scattering.",
+        judge_synth="SCORE: 3/10", judge_winner="SCORE: 8/10")
+    try:
+        srv, root = _start_guard_chat(server, tmp_path, monkeypatch)
+        try:
+            url = root + "/ask?question=" + urllib.parse.quote("why is the sky blue?")
+            urllib.request.urlopen(url, timeout=30).read()
+            d = _post(root, "/synthesize",
+                      {"question": "why is the sky blue?", "winner": "react", "save_winner": True})
+            assert d["ok"] is True
+            assert d["guard"] == "fell_back"
+            assert d["answer"] == "The sky looks blue because of Rayleigh scattering."
+            assert "synthesis 3.0 < winner 8.0" in d["note"]
+            assert not any(r.get("synthesized") for r in ask_mod.load_records())
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
+def test_pickbest_selection_guard_keeps_baseline(tmp_path, monkeypatch):
+    """When the arbiter picks a non-baseline the judge scored below react by
+    more than the noise floor, the selection guard crowns react instead."""
+    from dse import ask as ask_mod
+
+    server, _ = _guard_scripted_server(arbiter_pick=2)
+    try:
+        srv, root = _start_guard_chat(server, tmp_path, monkeypatch)
+        try:
+            ask_mod.save_records([
+                {"question": "why is the sky blue?", "strategy": "react",
+                 "answer": "The sky looks blue because of Rayleigh scattering.", "judge_score": 8.0},
+                {"question": "why is the sky blue?", "strategy": "self_refine",
+                 "answer": "Because of scattering of light by air molecules.", "judge_score": 4.0},
+            ])
+            d = _post(root, "/pickbest",
+                      {"question": "why is the sky blue?", "strategies": ["react", "self_refine"]})
+            assert d["winner"] == "react"
+            assert "never-worse guard" in d["reason"]
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
+def test_pickbest_selection_guard_allows_strong_winner(tmp_path, monkeypatch):
+    """When the arbiter's pick clears the noise floor vs react, the selection
+    guard lets it through (no guard note)."""
+    from dse import ask as ask_mod
+
+    server, _ = _guard_scripted_server(arbiter_pick=2)
+    try:
+        srv, root = _start_guard_chat(server, tmp_path, monkeypatch)
+        try:
+            ask_mod.save_records([
+                {"question": "why is the sky blue?", "strategy": "react",
+                 "answer": "The sky looks blue because of Rayleigh scattering.", "judge_score": 8.0},
+                {"question": "why is the sky blue?", "strategy": "self_refine",
+                 "answer": "Because of scattering of light by air molecules.", "judge_score": 7.5},
+            ])
+            d = _post(root, "/pickbest",
+                      {"question": "why is the sky blue?", "strategies": ["react", "self_refine"]})
+            assert d["winner"] == "self_refine"
+            assert "never-worse guard" not in d["reason"]
+        finally:
+            srv.shutdown()
+            srv.server_close()
+    finally:
+        server.shutdown()
+
+
 def test_stats_endpoint(tmp_path, monkeypatch):
     """GET /stats returns per-strategy aggregates + trend for the Insights panel."""
     import urllib.parse

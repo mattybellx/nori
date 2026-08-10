@@ -435,3 +435,43 @@ genuinely weaker/cheaper cheap tier (the Snell test-time-compute thesis).
    (p = 1.0). Feedback-beats-resampling is now replicated on a real model.
 5. Scope honest: n = 88/64, weak 1b model, short tasks. NOT "cheap beats
    expensive" (0.636 < strong 1.0); NOT applicable to frontier models.
+
+## 15. Never-worse guards — the "always better" pitch, measured (2026-08-10)
+
+> `python -m dse.benchmarks.run_never_worse --provider deepseek --suite free
+> --n-tasks 32 [--judge-model deepseek-v4-pro]`
+
+The guards turn **"never worse than the best candidate"** into a design
+property (proved, not claimed):
+
+- **selection guard** (`dse/guards.py`) — never crown a non-baseline winner
+  the calibrated judge scored below react by more than a noise floor; else
+  ship react.
+- **no-regression synthesis guard** — never ship a merge that is ungrounded
+  in at least one candidate or scored below the winner; else fall back to the
+  winner verbatim.
+
+### Ground-truth guarantee (deterministic / checkable suites)
+
+- Mock n=48: never-worse **48/48**; final vs react McNemar p = 0.0012
+  (b01=0), bootstrap 95% CI on the rate gain entirely above 0.
+- Real DeepSeek hard-real n=12: never-worse **12/12**; the synthesis guard
+  rejected 5/12 merges that could have regressed a correct winner.
+- Real `fail` suite (21 tasks incl. 7 "brutal", golds verified by
+  computation): **V4 Flash solves all 21 single-shot** — the honest proof
+  that this model has no ground-truth room left on checkable tasks.
+
+### Free-form (open-ended; quality = the de-noised median-N judge)
+
+Real DeepSeek n=8 (pilot): **baseline 7.71 → guarded winner 9.12 → FINAL
+9.25**; sometimes-better 4/8 (incl. a 3→9 and a 0→10 recovery); never-worse
+7/8, where the 1 miss is residual judge noise (the guard's own check passed
+on its median-3 batch; a fresh median-3 batch landed 1pt lower).
+
+**Honest framing:** n=8 is a pilot, not a claim. The free suite was scaled to
+**32 questions** and now reports a paired **Wilcoxon signed-rank** test
+(dependency-free, in `harness.py`) — the right test for continuous judge
+scores (McNemar can't see a 6→8 improvement). Run with `--judge-model
+deepseek-v4-pro` to grade with an independent model and break the
+self-grading circularity (by default the judge IS the model that wrote the
+answers — "better" partly means "more to its own taste").

@@ -14,6 +14,7 @@ from dse.benchmarks.harness import (
     run_multi_seed,
     save_results,
     serialize_results,
+    wilcoxon_signed_rank,
 )
 from dse.events import RunResult
 
@@ -77,6 +78,59 @@ def test_bootstrap_ci_separates_different_rates():
     lo, hi, point = bootstrap_ci(a, b, iters=400, seed=0)
     assert point > 0.5
     assert lo > 0.5
+
+
+def test_wilcoxon_identical_is_p_one():
+    w, p = wilcoxon_signed_rank([6.0, 7.0, 8.0, 5.0], [6.0, 7.0, 8.0, 5.0])
+    assert p == 1.0  # all differences zero -> dropped -> no evidence
+    w2, p2 = wilcoxon_signed_rank([6.0, 6.5, 7.0], [6.0, 6.5, 7.0])
+    assert p2 == 1.0
+
+
+def test_wilcoxon_detects_systematic_improvement():
+    # every final score is 2 points above baseline -> strongly significant
+    baseline = [5.0, 6.0, 7.0, 5.5, 6.5, 7.5, 4.0, 6.0]
+    final = [b + 2.0 for b in baseline]
+    w, p = wilcoxon_signed_rank(final, baseline)
+    assert p < 0.01
+    # all positive -> W+ equals the full rank sum
+    assert w == 8 * 9 / 2.0
+
+
+def test_wilcoxon_no_difference_has_high_p():
+    # balanced + and - diffs -> not significant; ranks {1,2,3,4}, positives at
+    # ranks 1 and 2 -> W+ = 3
+    a = [6.0, 7.0, 8.0, 9.0]
+    b = [5.0, 5.0, 11.0, 13.0]  # diffs: +1, +2, -3, -4
+    w, p = wilcoxon_signed_rank(a, b)
+    assert p > 0.05
+    assert w == 3.0
+
+
+def test_wilcoxon_requires_equal_length():
+    import pytest
+
+    with pytest.raises(ValueError, match="equal length"):
+        wilcoxon_signed_rank([1.0, 2.0], [1.0])
+
+
+def test_wilcoxon_handles_ties_with_average_ranks():
+    # diffs: +1, +1, -2 -> tied rank (1+2)/2=1.5 each for the two +1s
+    w, p = wilcoxon_signed_rank([5.0, 5.0, 3.0], [4.0, 4.0, 5.0])
+    assert w == 1.5 + 1.5  # both positive diffs keep their tied ranks
+    assert 0.0 <= p <= 1.0
+
+
+def test_wilcoxon_large_n_uses_normal_approximation():
+    # n=40 systematic improvement; normal approximation must agree direction
+    import random
+
+    rng = random.Random(0)
+    baseline = [rng.uniform(3.0, 7.0) for _ in range(40)]
+    final = [b + 1.5 for b in baseline]
+    w, p = wilcoxon_signed_rank(final, baseline)
+    assert p < 0.001
+    assert w == 40 * 41 / 2.0
 
 
 # ---------------------------------------------------------------------------
