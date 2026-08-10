@@ -1,0 +1,107 @@
+{
+  "summary": {
+    "n": 8,
+    "provider": "deepseek",
+    "suite": "free",
+    "judge_samples": 3,
+    "baseline_quality_avg": 7.714,
+    "winner_quality_avg": 9.125,
+    "final_quality_avg": 9.25,
+    "never_worse_judge": 0.875,
+    "never_worse_count": 7,
+    "sometimes_better": 4,
+    "selection_guard_fired": 0,
+    "synthesis_guard_fired": 0,
+    "elapsed_s": 934.8
+  },
+  "rows": [
+    {
+      "question": "Explain how quantum entanglement works in simple terms.",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 7.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.88) and score 10.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the main pros and cons of remote work?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.49) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "Explain the difference between machine learning and deep learning.",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 10.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.52) and score 10.0 >= winner 9.0"
+    },
+    {
+      "question": "How would you explain recursion to a five-year-old?",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 6.0,
+      "winner_quality": 9.0,
+      "final_quality": 8.0,
+      "guard": "grounded (overlap=0.48) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What are the key differences between HTTP/1.1 and HTTP/2?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 9.0,
+      "winner_quality": 9.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.52) and score 10.0 >= winner 9.0"
+    },
+    {
+      "question": "Compare solar power and wind power for powering a small town.",
+      "winner_strategy": "reflexion",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 3.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.24) and score 9.0 >= winner 7.0"
+    },
+    {
+      "question": "Explain compound interest to a teenager who wants to start saving.",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": null,
+      "winner_quality": 9.0,
+      "final_quality": 10.0,
+      "guard": "grounded (overlap=0.45) and score 9.0 >= winner 9.0"
+    },
+    {
+      "question": "What causes inflation, and what are its main effects on everyday people?",
+      "winner_strategy": "react",
+      "used_synth": true,
+      "selection_fired": false,
+      "synthesis_fired": false,
+      "baseline_quality": 10.0,
+      "winner_quality": 9.0,
+      "final_quality": 9.0,
+      "guard": "grounded (overlap=0.84) and score 10.0 >= winner 9.0"
+    }
+  ]
+}

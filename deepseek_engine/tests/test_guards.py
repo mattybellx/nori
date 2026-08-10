@@ -12,6 +12,7 @@ import random
 
 from dse.guards import (
     consistency_score,
+    robust_score,
     selection_guard,
     synthesis_guard,
 )
@@ -132,6 +133,32 @@ def test_synth_judge_error_ships_grounded():
     ans, used, why = synthesis_guard("grounded answer text", ["grounded answer text"],
                                      "winner", judge=boom)
     assert used is True and ans == "grounded answer text"
+
+
+# ---------------------------------------------------------------------------
+# robust_score (median-of-N judge — de-noising)
+# ---------------------------------------------------------------------------
+
+def test_robust_score_median_smooths_outliers():
+    calls = []
+    def noisy(t):
+        calls.append(1)
+        return 7.0 if len(calls) <= 2 else 3.0  # one outlier low call
+    assert robust_score(noisy, "x", samples=3) == 7.0
+
+
+def test_robust_score_all_none_is_none():
+    assert robust_score(lambda t: None, "x", samples=3) is None
+
+
+def test_robust_score_mixed_none_keeps_real_scores():
+    def mixed(t):
+        return 5.0 if t == "a" else None
+    assert robust_score(mixed, "a", samples=3) == 5.0
+
+
+def test_robust_score_single_sample_is_plain_call():
+    assert robust_score(lambda t: 4.0, "x", samples=1) == 4.0
 
 
 # ---------------------------------------------------------------------------

@@ -33,7 +33,7 @@ from ..env import load_env
 from ..events import RunResult
 from ..factory import build_stack
 from ..freeform import FreeFormJudge, PromptTask
-from ..guards import selection_guard, synthesis_guard
+from ..guards import robust_score, selection_guard, synthesis_guard
 from .harness import bootstrap_ci, mcnemar
 
 _SYNTH_PROMPT = (
@@ -54,6 +54,20 @@ _JUDGE_PROMPT = (
     "ANSWER:\n{text}"
 )
 
+# Open-ended questions (no ground truth): quality is the de-noised judge's
+# score. This is the regime where a frontier model's answers genuinely differ
+# and synthesis can add value — the honest place to show "sometimes better".
+_FREE_QUESTIONS = [
+    "Explain how quantum entanglement works in simple terms.",
+    "What are the main pros and cons of remote work?",
+    "Explain the difference between machine learning and deep learning.",
+    "How would you explain recursion to a five-year-old?",
+    "What are the key differences between HTTP/1.1 and HTTP/2?",
+    "Compare solar power and wind power for powering a small town.",
+    "Explain compound interest to a teenager who wants to start saving.",
+    "What causes inflation, and what are its main effects on everyday people?",
+]
+
 
 def _score_text(llm, text: str) -> float | None:
     try:
@@ -68,6 +82,11 @@ def _score_text(llm, text: str) -> float | None:
 def _judge_candidate(judge, task, answer: str) -> float | None:
     v = judge.score(answer or "", PromptTask(getattr(task, "id", "?"), getattr(task, "prompt", "")))
     return v.details.get("judge_score")
+
+
+def _make_robust_judge(llm, samples: int):
+    """A judge whose score is the median of ``samples`` calls — de-noised."""
+    return lambda text: robust_score(lambda t: _score_text(llm, t), text, samples=samples)
 
 
 def _synthesize(llm, question: str, candidates: list[dict], winner_name: str) -> str:
@@ -97,13 +116,17 @@ def _verify(verifier, task, answer: str) -> bool:
         return False
 
 
-def run(provider: str, suite: str, n_tasks: int, seed: int, max_steps: int) -> dict:
+def run(provider: str, suite: str, n_tasks: int, seed: int, max_steps: int,
+        judge_samples: int = 3) -> dict:
+    if suite == "free":
+        return run_free(provider, judge_samples, n_tasks)
     config, catalog, models, llm, env, verifier, agents, budget = build_stack(
         seed=seed, n_tasks=n_tasks, max_steps=max_steps, provider=provider, suite=suite)
     by_name = {a.name: a for a in agents}
     wanted = [n for n in ("react", "reflexion", "self_refine") if n in by_name]
     tasks = list(catalog.values())[:n_tasks]
     judge = FreeFormJudge(llm, model="expensive")
+    robust = _make_robust_judge(llm, judge_samples)
 
     rows = []
     t_start = time.time()
@@ -118,7 +141,6 @@ def run(provider: str, suite: str, n_tasks: int, seed: int, max_steps: int) -> d
                 "answer": rr.answer or "",
                 "correct": bool(rr.success),
                 "judge_score": _judge_candidate(judge, task, rr.answer),
-                "guard_score": _score_text(llm, rr.answer),
             }
 
         # ---- selection guard ----
@@ -135,13 +157,14 @@ def run(provider: str, suite: str, n_tasks: int, seed: int, max_steps: int) -> d
         question = getattr(task, "prompt", "")
         synth = _synthesize(llm, question, list(cands.values()), winner_name)
         final, used_synth, guard_why = synthesis_guard(
-            synth, candidates_text, win["answer"], judge=lambda t: _score_text(llm, t))
+            synth, candidates_text, win["answer"], judge=robust)
         synth_fired = not used_synth
         final_correct = _verify(verifier, task, final)
         # judge-metric: if we fell back, the final IS the winner (identical
-        # answer — no new noisy judge call). If we shipped, score it honestly.
-        winner_judge = win["guard_score"]
-        final_judge = _score_text(llm, final) if used_synth else winner_judge
+        # answer — no new noisy judge call). If we shipped, score it with the
+        # SAME robust judge the guard used.
+        winner_judge = robust(win["answer"])
+        final_judge = robust(final) if used_synth else winner_judge
 
         rows.append({
             "task": getattr(task, "id", ti),
@@ -217,15 +240,98 @@ def run(provider: str, suite: str, n_tasks: int, seed: int, max_steps: int) -> d
     return {"summary": summary, "rows": rows}
 
 
+def run_free(provider: str, judge_samples: int, n_questions: int) -> dict:
+    """Never-worse on open-ended questions: no ground truth exists, so the
+    de-noised judge's score IS the quality metric. The guards still guarantee
+    final >= winner (by the same robust judge), and synthesis has room to be
+    genuinely better than the baseline."""
+    from ..ask import build_ask_pipeline
+
+    llm, _models, _judge, strategies, budget = build_ask_pipeline(provider, None, None)
+    by_name = {s.name: s for s in strategies}
+    wanted = [n for n in ("react", "reflexion", "self_refine") if n in by_name]
+    robust = _make_robust_judge(llm, judge_samples)
+    questions = _FREE_QUESTIONS[:n_questions]
+    rows = []
+    t_start = time.time()
+    for qi, question in enumerate(questions, 1):
+        task = PromptTask(id=f"free-{qi}", prompt=question)
+        cands = {}
+        for name in wanted:
+            rr = by_name[name].solve(task, budget)
+            meta = getattr(rr, "verifier_meta", {}) or {}
+            cands[name] = {"strategy": name, "answer": rr.answer or "",
+                           "judge_score": meta.get("judge_score")}
+        records = [{"strategy": k, "judge_score": v["judge_score"]}
+                   for k, v in cands.items()]
+        scored = [r for r in records if r["judge_score"] is not None]
+        arbiter_pick = (max(scored, key=lambda r: r["judge_score"])["strategy"]
+                        if scored else "react")
+        winner_name = selection_guard(records, arbiter_pick)
+        sel_fired = winner_name != arbiter_pick
+        win = cands[winner_name]
+        candidates_text = [c["answer"] for c in cands.values()]
+        synth = _synthesize(llm, question, list(cands.values()), winner_name)
+        final, used_synth, guard_why = synthesis_guard(
+            synth, candidates_text, win["answer"], judge=robust)
+        synth_fired = not used_synth
+        baseline_quality = robust(cands["react"]["answer"])
+        winner_quality = robust(win["answer"])
+        final_quality = robust(final) if used_synth else winner_quality
+        rows.append({
+            "question": question,
+            "winner_strategy": winner_name,
+            "used_synth": used_synth,
+            "selection_fired": sel_fired,
+            "synthesis_fired": synth_fired,
+            "baseline_quality": baseline_quality,
+            "winner_quality": winner_quality,
+            "final_quality": final_quality,
+            "guard": guard_why,
+        })
+        print(f"  [{qi}/{len(questions)}] {question[:42]}")
+    n = len(rows)
+
+    def avg(key: str) -> float:
+        vals = [r[key] for r in rows if r[key] is not None]
+        return (sum(vals) / len(vals)) if vals else 0.0
+
+    never_worse = sum(1 for r in rows if r["final_quality"] is None
+                      or r["winner_quality"] is None
+                      or r["final_quality"] >= r["winner_quality"] - 0.5 - 1e-9)
+    sometimes_better = sum(1 for r in rows
+                           if r["final_quality"] is not None
+                           and r["baseline_quality"] is not None
+                           and r["final_quality"] > r["baseline_quality"] + 0.5)
+    summary = {
+        "n": n,
+        "provider": provider,
+        "suite": "free",
+        "judge_samples": judge_samples,
+        "baseline_quality_avg": round(avg("baseline_quality"), 3),
+        "winner_quality_avg": round(avg("winner_quality"), 3),
+        "final_quality_avg": round(avg("final_quality"), 3),
+        "never_worse_judge": round(never_worse / n, 3) if n else 0.0,
+        "never_worse_count": never_worse,
+        "sometimes_better": sometimes_better,
+        "selection_guard_fired": sum(1 for r in rows if r["selection_fired"]),
+        "synthesis_guard_fired": sum(1 for r in rows if r["synthesis_fired"]),
+        "elapsed_s": round(time.time() - t_start, 1),
+    }
+    return {"summary": summary, "rows": rows}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="nori never-worse benchmark")
     parser.add_argument("--provider", choices=["mock", "deepseek", "ollama", "openai", "github"],
                         default="mock")
-    parser.add_argument("--suite", choices=["all", "easy", "hard", "real", "hard-real", "hard-tuned", "code"],
+    parser.add_argument("--suite", choices=["all", "easy", "hard", "real", "hard-real", "hard-tuned", "code", "fail", "free"],
                         default="all")
     parser.add_argument("--n-tasks", type=int, default=48)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=5)
+    parser.add_argument("--judge-samples", type=int, default=3,
+                        help="median-of-N judge calls to de-noise scores (1 = single call)")
     parser.add_argument("--out", default=None)
     args = parser.parse_args()
 
@@ -234,29 +340,47 @@ def main() -> None:
         parser.error("provider needs a token. Add DSE_PROVIDER_KEY to the .env file "
                      "(see .env.example) or set the environment variable.")
 
-    result = run(args.provider, args.suite, args.n_tasks, args.seed, args.max_steps)
+    result = run(args.provider, args.suite, args.n_tasks, args.seed, args.max_steps,
+                 judge_samples=args.judge_samples)
     s = result["summary"]
     print()
-    ui.section("never-worse benchmark (n=%d, provider=%s, suite=%s)" % (s["n"], s["provider"], s["suite"]))
-    print(ui.table(
-        ["metric", "value"],
-        [
-            ["baseline (react) success", f"{s['baseline_success']:.3f}"],
-            ["arbiter winner success (unguarded)", f"{s['arbiter_winner_success']:.3f}"],
-            ["guarded winner success", f"{s['guarded_winner_success']:.3f}"],
-            ["FINAL success (with guards)", f"{s['final_success']:.3f}"],
-            ["never-worse rate (final >= winner)", f"{s['never_worse_rate']:.3f}  ({s['never_worse_count']}/{s['n']})"],
-            ["sometimes better (final fixes wrong winner)", str(s["sometimes_better"])],
-            ["selection guard fired", str(s["selection_guard_fired"])],
-            ["synthesis guard fired (fell back)", str(s["synthesis_guard_fired"])],
-            ["judge-metric guarantee held", f"{s['judge_metric_guarantee_held']}/{s['n']}"],
-            ["final vs baseline McNemar p", f"{s['mcnemar_final_vs_baseline']['p']} (b01={s['mcnemar_final_vs_baseline']['b01']}, b10={s['mcnemar_final_vs_baseline']['b10']})"],
-            ["final vs winner McNemar p", f"{s['mcnemar_final_vs_winner']['p']} (b01={s['mcnemar_final_vs_winner']['b01']}, b10={s['mcnemar_final_vs_winner']['b10']})"],
-            ["bootstrap 95% CI (final - baseline)", str(s.get("bootstrap_95_ci_final_minus_baseline"))],
-            ["elapsed", f"{s['elapsed_s']}s"],
-        ],
-        header_style=ui.bold,
-    ))
+    ui.section("never-worse benchmark (n=%d, provider=%s, suite=%s, judge-samples=%d)" % (
+        s["n"], s["provider"], s["suite"], args.judge_samples))
+    if args.suite == "free":
+        print(ui.table(
+            ["metric", "value"],
+            [
+                ["baseline (react) quality (robust judge)", f"{s['baseline_quality_avg']:.2f}/10"],
+                ["guarded winner quality", f"{s['winner_quality_avg']:.2f}/10"],
+                ["FINAL quality (with guards)", f"{s['final_quality_avg']:.2f}/10"],
+                ["never-worse by robust judge (final >= winner)", f"{s['never_worse_judge']:.3f}  ({s['never_worse_count']}/{s['n']})"],
+                ["sometimes better (final > baseline + 0.5)", str(s["sometimes_better"])],
+                ["selection guard fired", str(s["selection_guard_fired"])],
+                ["synthesis guard fired (fell back)", str(s["synthesis_guard_fired"])],
+                ["elapsed", f"{s['elapsed_s']}s"],
+            ],
+            header_style=ui.bold,
+        ))
+    else:
+        print(ui.table(
+            ["metric", "value"],
+            [
+                ["baseline (react) success", f"{s['baseline_success']:.3f}"],
+                ["arbiter winner success (unguarded)", f"{s['arbiter_winner_success']:.3f}"],
+                ["guarded winner success", f"{s['guarded_winner_success']:.3f}"],
+                ["FINAL success (with guards)", f"{s['final_success']:.3f}"],
+                ["never-worse rate (final >= winner)", f"{s['never_worse_rate']:.3f}  ({s['never_worse_count']}/{s['n']})"],
+                ["sometimes better (final fixes wrong winner)", str(s["sometimes_better"])],
+                ["selection guard fired", str(s["selection_guard_fired"])],
+                ["synthesis guard fired (fell back)", str(s["synthesis_guard_fired"])],
+                ["judge-metric guarantee held", f"{s['judge_metric_guarantee_held']}/{s['n']}"],
+                ["final vs baseline McNemar p", f"{s['mcnemar_final_vs_baseline']['p']} (b01={s['mcnemar_final_vs_baseline']['b01']}, b10={s['mcnemar_final_vs_baseline']['b10']})"],
+                ["final vs winner McNemar p", f"{s['mcnemar_final_vs_winner']['p']} (b01={s['mcnemar_final_vs_winner']['b01']}, b10={s['mcnemar_final_vs_winner']['b10']})"],
+                ["bootstrap 95% CI (final - baseline)", str(s.get("bootstrap_95_ci_final_minus_baseline"))],
+                ["elapsed", f"{s['elapsed_s']}s"],
+            ],
+            header_style=ui.bold,
+        ))
     if args.out:
         with open(args.out, "w", encoding="utf-8") as fh:
             json.dump(result, fh, ensure_ascii=False, indent=2)

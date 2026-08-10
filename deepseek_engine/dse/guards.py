@@ -30,6 +30,24 @@ from typing import Callable
 DEFAULT_NOISE_FLOOR = 0.5   # calibrated-judge (0-10) gap a non-baseline winner must clear
 DEFAULT_MIN_OVERLAP = 0.10  # min bigram-overlap ratio to call a synthesis "grounded"
 DEFAULT_SCORE_MARGIN = 0.5  # judge (0-10) margin a synthesis must clear to replace the winner
+DEFAULT_JUDGE_SAMPLES = 3   # median-of-N judge calls to de-noise the score-based check
+
+
+def robust_score(judge: Callable[[str], float | None], text: str,
+                 samples: int = DEFAULT_JUDGE_SAMPLES) -> float | None:
+    """Median of ``samples`` independent judge calls — reduces judge noise.
+
+    The live judge is noisy (a reasoning model grading itself), so a single
+    call can move the score by a point or more. The median of several calls is
+    a far more stable input to the guards (the property the guards enforce is
+    only as good as the score they compare).
+    """
+    scores = [judge(text) for _ in range(max(1, samples))]
+    scores = [s for s in scores if s is not None]
+    if not scores:
+        return None
+    scores.sort()
+    return scores[len(scores) // 2]
 
 
 def _tokens(text: str) -> list[str]:

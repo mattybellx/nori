@@ -84,6 +84,7 @@ def build_stack(
     from .benchmarks.tasks import make_catalog
     from .codetasks import make_code_catalog
     from .env import load_env
+    from .failtasks import make_fail_catalog
     from .hardtasks import make_hard_catalog, make_hard_tuned_catalog
     from .realtasks import REAL_SUITE_AGENTS, make_real_catalog
     from .verifier import RealTaskVerifier
@@ -97,6 +98,10 @@ def build_stack(
         catalog: dict[str, Task] = make_real_catalog(seed=seed)
         env = Environment({})
         verifier: Verifier = RealTaskVerifier()
+    elif suite == "fail":
+        catalog = make_fail_catalog(seed=seed)
+        env = Environment({})
+        verifier = RealTaskVerifier()
     elif suite == "code":
         catalog = make_code_catalog(seed=seed)
         env = Environment({})

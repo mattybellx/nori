@@ -30,7 +30,7 @@ from .agent import Budget
 from .config import EngineConfig, default_flags
 from .env import load_env
 from .freeform import FreeFormJudge, PromptTask
-from .guards import selection_guard, synthesis_guard
+from .guards import robust_score, selection_guard, synthesis_guard
 from .providers import PROVIDER_ENDPOINTS, make_provider
 from .strategies import BestOfNAgent, ReactAgent, ReflexionAgent, SelfRefineAgent
 from .telemetry import estimate_cost
@@ -242,20 +242,26 @@ class ChatHandler(BaseHTTPRequestHandler):
 
     # -- AI arbiter: pick the single best answer for a question ------------
     def _score_text(self, text: str) -> float | None:
-        """Calibrated 0-10 judge score of a free text (synthesis guard)."""
+        """Calibrated 0-10 judge score of a free text (median of 2 calls —
+        the live judge is noisy, so a single call is too unstable for the
+        synthesis guard's never-worse check)."""
         import re as _re
         llm = self.server.pipeline["llm"]
-        prompt = (
-            "You are a strict, calibrated answer grader. Reply with EXACTLY one "
-            "line and nothing else: SCORE: <0-10>. Be harsh; use the full range.\n"
-            "ANSWER:\n" + (text or ""))
-        try:
-            resp = llm.complete([{"role": "system", "content": prompt}],
-                                model="expensive", max_tokens=40).text or ""
-        except Exception:
-            return None
-        m = _re.search(r"SCORE\s*:\s*(\d+(?:\.\d+)?)", resp, _re.IGNORECASE)
-        return float(m.group(1)) if m else None
+
+        def _one(t: str) -> float | None:
+            prompt = (
+                "You are a strict, calibrated answer grader. Reply with EXACTLY "
+                "one line and nothing else: SCORE: <0-10>. Be harsh; use the full "
+                "range.\nANSWER:\n" + (t or ""))
+            try:
+                resp = llm.complete([{"role": "system", "content": prompt}],
+                                    model="expensive", max_tokens=40).text or ""
+            except Exception:
+                return None
+            m = _re.search(r"SCORE\s*:\s*(\d+(?:\.\d+)?)", resp, _re.IGNORECASE)
+            return float(m.group(1)) if m else None
+
+        return robust_score(_one, text, samples=2)
 
     def _pick_best(self, question: str, strategies: list | None = None):
         """Ask the model to rank all saved answers and pick the best one.
