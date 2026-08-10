@@ -854,6 +854,14 @@ function _wlFinishRow(row){
   if(!row)return;
   row.querySelectorAll('.trt,.tat').forEach(_wlStreamFinish);
 }
+function _wlCollapseAll(logEl){
+  if(!logEl)return;
+  logEl.querySelectorAll('.wl.open').forEach(row=>{
+    row.classList.remove('open');
+    const det=row.querySelector('.wldet');if(det)det.classList.remove('open');
+    const c=row.querySelector('.wchev');if(c)c.textContent='›';
+  });
+}
 /* background tabs throttle setInterval (to ~1s or worse), so a reveal can
    crawl and leave text looking blank. When the tab comes back, snap every
    in-flight stream to its full text. */
@@ -913,6 +921,11 @@ function workDone(g){
   if(!autoMode)return;
   const el=$('#work-'+g);if(el)el.classList.add('done');
   const msg=$('#workmsg-'+g);if(msg)msg.textContent='✓ done';
+  // the whole workflow is complete — fold the thinking away and leave the
+  // clean answer in focus; "Show thinking" reopens it at any time
+  const log=$('#worklog-'+g),tog=$('#worktoggle-'+g);
+  if(log){_wlCollapseAll(log);log.classList.remove('open');}
+  if(tog)tog.textContent='Show thinking';
 }
 
 /* ---------- all-answers panel ---------- */
@@ -1293,7 +1306,13 @@ function ask(){
   es.addEventListener('done',e=>{
     es.close();busy=false;send.disabled=false;winner=null;refreshArbiter();
     const pick2=$('#pick-'+seq);if(pick2)pick2.disabled=false;
-    if(autoMode){workLog(seq,'All strategies done — choosing the best…',{closeSection:true});pickBest(true);}
+    if(autoMode){
+      // auto-close the thinking now that every strategy finished — seamless
+      // hand-off to "choosing the best…"; users can reopen any step
+      _wlCollapseAll($('#worklog-'+seq));
+      workLog(seq,'All strategies done — choosing the best…',{closeSection:true});
+      pickBest(true);
+    }
     loadHistory();loadStats();
   });
   es.onerror=()=>{es.close();busy=false;send.disabled=false;thinking(false);refreshArbiter();
