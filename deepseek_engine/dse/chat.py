@@ -30,6 +30,7 @@ from .agent import Budget
 from .config import EngineConfig, default_flags
 from .env import load_env
 from .freeform import FreeFormJudge, PromptTask
+from .guards import selection_guard, synthesis_guard
 from .providers import PROVIDER_ENDPOINTS, make_provider
 from .strategies import BestOfNAgent, ReactAgent, ReflexionAgent, SelfRefineAgent
 from .telemetry import estimate_cost
@@ -240,6 +241,22 @@ class ChatHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": "not found"})
 
     # -- AI arbiter: pick the single best answer for a question ------------
+    def _score_text(self, text: str) -> float | None:
+        """Calibrated 0-10 judge score of a free text (synthesis guard)."""
+        import re as _re
+        llm = self.server.pipeline["llm"]
+        prompt = (
+            "You are a strict, calibrated answer grader. Reply with EXACTLY one "
+            "line and nothing else: SCORE: <0-10>. Be harsh; use the full range.\n"
+            "ANSWER:\n" + (text or ""))
+        try:
+            resp = llm.complete([{"role": "system", "content": prompt}],
+                                model="expensive", max_tokens=40).text or ""
+        except Exception:
+            return None
+        m = _re.search(r"SCORE\s*:\s*(\d+(?:\.\d+)?)", resp, _re.IGNORECASE)
+        return float(m.group(1)) if m else None
+
     def _pick_best(self, question: str, strategies: list | None = None):
         """Ask the model to rank all saved answers and pick the best one.
 
@@ -334,6 +351,15 @@ class ChatHandler(BaseHTTPRequestHandler):
         if winner is not None and not reason_txt:
             reason_txt = ("Selected by highest judge score." if num is None
                           else "The AI judged it the best answer.")
+        # never-worse selection guard: never ship a candidate the calibrated
+        # judge scored meaningfully below the baseline (react)
+        arbiter_pick = (winner or {}).get("strategy")
+        guarded = selection_guard(records, arbiter_pick)
+        if guarded and guarded != arbiter_pick:
+            winner = next((r for r in records if r.get("strategy") == guarded), winner)
+            reason_txt = (reason_txt + " [never-worse guard: kept the baseline — "
+                          "the arbiter's pick was scored below it by more than the "
+                          "noise floor.]").strip()
         self._send_json(200, {
             "question": question,
             "winner": (winner or {}).get("strategy"),
@@ -438,13 +464,25 @@ class ChatHandler(BaseHTTPRequestHandler):
         answer = (fa.group(1).strip() if fa else text.strip()) or ""
         if not answer:
             answer = "Synthesis returned an empty answer — please retry."
-        if body.get("save_winner") and win_name:
+        # no-regression synthesis guard: never ship a merge that isn't grounded
+        # in a candidate, or that the calibrated judge scores below the winner
+        candidates = [str(r.get("answer") or "") for r in records]
+        win_answer = ((winner or {}).get("answer") or "") or (candidates[0] if candidates else "")
+        final_answer, used_synth, guard_reason = synthesis_guard(
+            answer, candidates, win_answer, judge=lambda t: self._score_text(t))
+        guard_note = f"[never-worse guard: {guard_reason}]"
+        note_txt = note.group(1).strip()[:1200] if note else ""
+        if not used_synth:
+            answer = final_answer
+            note_txt = f"{note_txt} {guard_note}".strip() if note_txt else guard_note
+        if body.get("save_winner") and win_name and used_synth:
             ask_mod.update_record(question, win_name, synthesized=answer)
         self._send_json(200, {
             "ok": True,
             "answer": answer[:8000],
-            "note": (note.group(1).strip()[:1200] if note else ""),
+            "note": note_txt,
             "winner": win_name,
+            "guard": "fell_back" if not used_synth else "shipped",
         })
 
     # -- the SSE ask stream -------------------------------------------------

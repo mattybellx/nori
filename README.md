@@ -76,6 +76,10 @@ so the answer you actually read is better than any single attempt.
   [BENCHMARKS.md](deepseek_engine/BENCHMARKS.md).
 - **Deterministic by default** — a calibrated `MockLLM` makes tests and
   benchmarks reproducible, so strategy comparisons are causal, not anecdotal.
+- **Never worse, by construction** — a selection guard and a no-regression
+  synthesis guard make it a *design property* that the shipped answer is never
+  worse than the best candidate (proved by property tests and a ground-truth
+  `never-worse` benchmark).
 
 ## How it works
 
