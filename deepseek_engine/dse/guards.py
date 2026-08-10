@@ -19,7 +19,10 @@ Everything here is stdlib-only and deterministic except the optional judge
 call in ``synthesis_guard`` (used by the live chat path and the benchmark).
 The guarantee it enforces: the returned answer is never the synthesized
 version when the calibrated judge scored that version below the winner by
-more than the margin.
+more than the margin — and if the judge FAILS or returns no score, the
+synthesis is never shipped (fall back to the winner), because an unverified
+merge could not be guaranteed never-worse (the one miss in the n=32
+free-form run).
 """
 
 from __future__ import annotations
@@ -144,10 +147,15 @@ def synthesis_guard(
         s_score = judge(synth)
         w_score = judge(winner_answer)
     except Exception:
-        # judge failure must not block a grounded synthesis from shipping
-        return synth, True, f"judge failed -> ship grounded synthesis (overlap={grounded:.2f})"
+        # A judge failure means we CANNOT verify never-worse, so shipping an
+        # unverified merge is unsafe. Fall back to the winner (conservative).
+        # Lesson from the n=32 free-form run: the old "ship anyway" policy let
+        # one unverified merge through and the fresh judge scored it 0.0.
+        return winner_answer, False, "judge failed -> winner"
     if s_score is None or w_score is None:
-        return synth, True, f"grounded synthesis (overlap={grounded:.2f}); judge score missing"
+        # No score = no verification of never-worse -> fall back to the winner.
+        return winner_answer, False, (
+            f"judge score missing (synth={s_score}, winner={w_score}) -> winner")
     if s_score < w_score - score_margin:
         return winner_answer, False, (
             f"synthesis {s_score:.1f} < winner {w_score:.1f} - margin {score_margin} -> winner")

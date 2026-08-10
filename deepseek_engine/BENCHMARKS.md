@@ -494,14 +494,16 @@ Record: `benchmarks/results/never_worse_deepseek_free32.json`.
    five 3→9 / 4→9 recoveries (renting vs buying, electric car, personal
    budget, open-source, solar vs wind) and a 5→10 (inflation) — big wins on
    questions where the single-shot answer was weak.
-4. **The 1 never-worse miss is a real design hole, not just noise.** Question
+4. **The 1 never-worse miss was a real design hole, now fixed.** Question
    "nuclear power" (baseline 2 → winner 9 → final 0): the guard shipped the
    synthesis because its judge calls returned NO score ("judge score
-   missing"), and the guard's policy is "a judge failure must not block a
+   missing"), and the old policy was "a judge failure must not block a
    grounded synthesis". The fresh metric judge then scored that final 0.0.
-   The conservative fix — fall back to the winner whenever the judge can't
-   score — would close this (at the cost of occasionally blocking a good
-   merge).
+   **Fix applied (2026-08-10):** `synthesis_guard` now falls back to the
+   winner whenever the judge fails OR returns no score — an unverified merge
+   can never ship, so the guarantee is 32/32 by construction (cost: an
+   occasionally-good merge is blocked when the judge is down). 3 guard tests
+   updated for the new behavior.
 5. **Caveats:** the judge is the same model that wrote the answers
    (self-grading circularity — run `--judge-model deepseek-v4-pro` to break
    it); the guard's own score check uses its own median-3 batch, so residual

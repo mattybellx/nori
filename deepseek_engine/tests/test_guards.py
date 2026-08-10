@@ -127,12 +127,25 @@ def test_synth_grounded_and_scored_above_winner_ships():
     assert used is True and ans == "synth grounded answer"
 
 
-def test_synth_judge_error_ships_grounded():
+def test_synth_judge_error_falls_back_to_winner():
+    """A judge failure means never-worse cannot be verified -> ship the winner
+    (conservative). This closes the n=32 miss where an unverified merge shipped
+    and the fresh judge scored it 0.0."""
     def boom(t):
         raise RuntimeError("judge down")
     ans, used, why = synthesis_guard("grounded answer text", ["grounded answer text"],
                                      "winner", judge=boom)
-    assert used is True and ans == "grounded answer text"
+    assert used is False and ans == "winner"
+    assert "judge failed" in why
+
+
+def test_synth_judge_score_missing_falls_back_to_winner():
+    """Judge returns no score -> cannot verify never-worse -> ship the winner."""
+    judge = lambda t: None
+    ans, used, why = synthesis_guard("grounded answer text", ["grounded answer text"],
+                                     "winner", judge=judge)
+    assert used is False and ans == "winner"
+    assert "score missing" in why
 
 
 # ---------------------------------------------------------------------------
