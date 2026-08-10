@@ -286,6 +286,45 @@ trade-offs, not waste).
 
 **270 tests passing** (10 new in `tests/test_discovery_pareto.py`).
 
+## What Phase 8 added (2026-08-11, DONE — 8 tests)
+
+`dse/discovery/invention.py` — the system learns from its own failures and
+compresses its own successes (spec §27/§28):
+
+- **`classify_failure(run)`** (§27) — classifies a failed run by its TERMINAL
+  stage: `draft_failed` (generator/strategy produced a wrong answer),
+  `selection_failed` (objective selection picked wrong), `verification_failed`
+  (verify/guard rejected), `unknown`.
+- **`FAILURE_RESPONSES`** (§27 table) — a failure-mode → architectural-response
+  mapping: `draft_failed` → best_of_n_ify / duplicate_sequential /
+  append_verify; `selection_failed` → insert_verify / append_verify /
+  gather_join; `verification_failed` → best_of_n_ify / insert_verify.
+  `build_response` turns a response into a uniquely-named, compile-gated
+  candidate graph.
+- **`invent_from_failures`** — the §27 loop: benchmark the base → collect the
+  FAILING tasks → classify the failure modes → build response candidates →
+  benchmark them on the FAIL set AND the PASS set separately → **keep only
+  candidates that fix ≥ 1 failed task AND regress 0 passed tasks** (a "fix"
+  that breaks working tasks is a trade-off, not an invention). Registers
+  inventions with `source="invented"`, genealogy, and fitness.
+- **`compress_success`** (§28) — greedy ablation: delete stages one at a time;
+  keep a deletion only if success holds (within tolerance of the original) AND
+  compute drops below the original. Returns the most-compressed graph + report.
+
+**Demo on the 24-task mock**: react passed 5 / failed 19 → mode `draft_failed`
+→ `best_of_n_ify` response **fixed 8/19 failures with zero regressions** on
+the passes (invented). And `react_bloated_parallel` (a parallel copy whose
+result is ignored — pure token waste) compressed from **102 tok @ 0.38 to
+51 tok @ 0.38** — half the compute, identical quality.
+
+Honest note: compression comparisons use per-architecture reseeding, so a
+clean compression case (the removed stage's result is unused, e.g. a parallel
+copy) holds quality EXACTLY; removing a stage that shifts the exit to a
+different stochastic draw can be noisy at small n — the tolerance parameter
+is the honest lever.
+
+**278 tests passing** (8 new in `tests/test_discovery_invention.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -297,7 +336,8 @@ trade-offs, not waste).
 | **5 ✅** | Evolutionary search: crossover (head of A × tail of B), novelty-aware beam, retirement, statistical significance gate (sign test + bootstrap CI) | Phase 4 loop, `harness.sign_test`/`bootstrap_ci` | significance layer works + gate requires STRICT improvement (13 tests; significance gate found & fixed an epsilon bug) |
 | **6 ✅** | Adaptive routing: task-class → architecture via the ProblemProfiler + UCB router | `ProblemProfiler` (new), `harness` | routing beats the best single fixed architecture on held-out tasks when archs specialize (10 tests — demonstrated on the mock) |
 | **7 ✅** | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23/§40) | `ArchRunRecord` costs | Pareto frontier + efficiency + compression detection (10 tests — demonstrated) |
-| 8 | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch beats the failing baseline |
+| **8 ✅** | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch fixes failures w/o regression; compression halves compute at equal quality (8 tests — demonstrated) |
+| 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
 | 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
 | 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |
 

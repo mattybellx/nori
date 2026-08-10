@@ -41,6 +41,15 @@ from .evolution import (
     unique_child_name,
     validate_statistical,
 )
+from .invention import (
+    CompressionReport,
+    InventionReport,
+    build_response,
+    classify_failure,
+    compress_success,
+    failure_responses_for,
+    invent_from_failures,
+)
 from .loop import (
     DiscoveryConfig,
     DiscoveryReport,
@@ -121,6 +130,9 @@ __all__ = [
     "TaskProfile", "UCRouter", "profile_task", "run_routing_experiment",
     "ParetoPoint", "compression_win", "compute_efficiency", "dominates",
     "pareto_frontier", "pareto_summary", "point_from_row",
+    "classify_failure", "build_response", "failure_responses_for",
+    "invent_from_failures", "InventionReport",
+    "compress_success", "CompressionReport",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
