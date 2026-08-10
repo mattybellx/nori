@@ -325,6 +325,39 @@ is the honest lever.
 
 **278 tests passing** (8 new in `tests/test_discovery_invention.py`).
 
+## What Phase 9 added (2026-08-11, DONE — 7 tests)
+
+`dse/discovery/primitive_invention.py` — the system can now propose and admit
+NEW primitives (spec §38 contract, §39 code-generation gates):
+
+- **`PrimitiveProposal`** (§38) — the full contract: name, purpose, input
+  contract (port → description), output contract, implementation (a 3-arg
+  Primitive), preconditions, failure modes, cost model, the proposal's own
+  contract tests, and an optional reference implementation.
+- **`validate_primitive`** — the §39 pipeline, each gate independent and
+  reported: STATIC (3-arg callable, name not already registered, name+purpose
+  present), UNIT (the proposal's own tests pass — required), ADVERSARIAL
+  (empty/missing/garbage inputs must not crash; output must be deterministic
+  on the seeded mock), REFERENCE (outputs match a trusted reference when
+  provided), SANDBOX (executes in a realistic two-generator pipeline on the
+  mock; measures tokens/latency), COST (recorded).
+- **`promote_primitive`** — registers the primitive into the live registry
+  ONLY if every gate passed. Generated code never silently replaces trusted
+  infrastructure — promotion is explicit (§39).
+- **Demonstrated with a genuinely NEW primitive: `majority_vote`** —
+  self-consistency voting (Wang et al. 2022, cited in verifier.py), previously
+  NOT in the registry. Full proposal (`propose_majority_vote`) with contract
+  tests; passes all five gates and is promoted, then verified usable in a
+  compiled graph. Deterministic tie-break (lexicographically smallest among
+  max-vote texts).
+
+Design note: validation runs BEFORE promotion, so the SANDBOX gate executes
+the primitive in a simulated pipeline directly (a graph cannot yet reference
+an unregistered primitive — the compiler validates against the registered
+set). The post-promotion graph-compile is verified by the promote test.
+
+**285 tests passing** (7 new in `tests/test_discovery_primitive_invention.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -337,7 +370,8 @@ is the honest lever.
 | **6 ✅** | Adaptive routing: task-class → architecture via the ProblemProfiler + UCB router | `ProblemProfiler` (new), `harness` | routing beats the best single fixed architecture on held-out tasks when archs specialize (10 tests — demonstrated on the mock) |
 | **7 ✅** | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23/§40) | `ArchRunRecord` costs | Pareto frontier + efficiency + compression detection (10 tests — demonstrated) |
 | **8 ✅** | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch fixes failures w/o regression; compression halves compute at equal quality (8 tests — demonstrated) |
-| 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
+| **9 ✅** | Novel primitive discovery: proposals with full contracts pass static/unit/adversarial/reference/sandbox gates before entering the registry (spec §38/§39) | compiler + registry | new primitives pass their contract tests (7 tests — majority_vote demonstrated) |
+| 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |
 | 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
 | 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |
 

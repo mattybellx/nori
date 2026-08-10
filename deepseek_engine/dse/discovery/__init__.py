@@ -83,6 +83,13 @@ from .pareto import (
     pareto_summary,
     point_from_row,
 )
+from .primitive_invention import (
+    PrimitiveProposal,
+    PrimitiveValidation,
+    propose_majority_vote,
+    promote_primitive,
+    validate_primitive,
+)
 from .primitives import (
     ExecutionContext,
     NodeOutput,
@@ -133,6 +140,8 @@ __all__ = [
     "classify_failure", "build_response", "failure_responses_for",
     "invent_from_failures", "InventionReport",
     "compress_success", "CompressionReport",
+    "PrimitiveProposal", "PrimitiveValidation",
+    "validate_primitive", "promote_primitive", "propose_majority_vote",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",
