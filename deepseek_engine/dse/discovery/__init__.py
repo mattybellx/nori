@@ -65,6 +65,15 @@ from .mutations import (
     substitute,
     swap_primitives,
 )
+from .pareto import (
+    ParetoPoint,
+    compression_win,
+    compute_efficiency,
+    dominates,
+    pareto_frontier,
+    pareto_summary,
+    point_from_row,
+)
 from .primitives import (
     ExecutionContext,
     NodeOutput,
@@ -110,6 +119,8 @@ __all__ = [
     "crossover", "crossover_children", "unique_child_name",
     "validate_statistical", "retire_unfit", "beam_score",
     "TaskProfile", "UCRouter", "profile_task", "run_routing_experiment",
+    "ParetoPoint", "compression_win", "compute_efficiency", "dominates",
+    "pareto_frontier", "pareto_summary", "point_from_row",
     "insert_before", "insert_after", "insert_verify", "append_verify",
     "delete_node", "substitute", "swap_primitives",
     "duplicate_parallel", "duplicate_sequential", "branch", "gather_join",

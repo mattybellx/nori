@@ -251,6 +251,41 @@ direction to test on real tasks).
 
 **260 tests passing** (10 new in `tests/test_discovery_routing.py`).
 
+## What Phase 7 added (2026-08-11, DONE — 10 tests)
+
+`dse/discovery/pareto.py` — compute optimization (spec §13 multi-objective,
+§23 compression, §40 dashboard):
+
+- **`ParetoPoint` / `point_from_row`** — map a benchmark row to the
+  multi-objective point (maximize success_rate & verifier score; minimize
+  tokens & latency; missing scores are not compared).
+- **`dominates`** — strict multi-objective dominance (better on ≥1, not worse
+  on all).
+- **`pareto_frontier`** — the non-dominated set (the §40 frontier).
+- **`compute_efficiency`** — quality per unit compute (success per token).
+- **`compression_win`** (§23) — when a SIMPLER architecture dominates a
+  complex one, the complex architecture's extra compute did not pay.
+- **`pareto_summary`** — dashboard-shaped dict (frontier / dominated /
+  efficiency rank / points).
+- **Wired into `discover`**: `require_pareto` (default False) + `pareto_margin`
+  — if the candidate's success gain is within the margin of the incumbent but
+  costs strictly more compute, it is rejected as a **compression loss** (the
+  added compute did not pay; prefer minimum compute for the desired quality).
+  `DiscoveryReport.pareto` carries the frontier summary of the last round.
+
+**Demo on the 24-task mock** (exactly what §40 wants): frontier = `react`
+(cheapest, 51 tok), `escalating` (0.58 @ 78 tok — most efficient 0.0075/tok),
+`self_refine` (0.75 @ 116 tok — best quality-per-token among the strong).
+**Dominated**: `reflexion` is strictly dominated by `self_refine` (same 0.75
+success but 148 vs 116 tokens); `best_of_n` dominated; and the hand-rolled
+`react_best_of_n_ify` is dominated by the real `best_of_n` — a genuinely
+honest finding that the discovered-style expansion is strictly worse than the
+built-in strategy at the same cost. **Compression**: react does NOT dominate
+the bigger arches — their extra compute buys real quality (genuine frontier
+trade-offs, not waste).
+
+**270 tests passing** (10 new in `tests/test_discovery_pareto.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
@@ -261,7 +296,7 @@ direction to test on real tasks).
 | **4 ✅** | Discovery loop v0: population + beam, fitness from `ArchRunRecord`, promotion gate (improvement + no-regression + held-out generalization + structural distinctness) | registry, `harness` stats, mutations | a discovered candidate beats a baseline on held-out mock tasks (9 tests — demonstrated) |
 | **5 ✅** | Evolutionary search: crossover (head of A × tail of B), novelty-aware beam, retirement, statistical significance gate (sign test + bootstrap CI) | Phase 4 loop, `harness.sign_test`/`bootstrap_ci` | significance layer works + gate requires STRICT improvement (13 tests; significance gate found & fixed an epsilon bug) |
 | **6 ✅** | Adaptive routing: task-class → architecture via the ProblemProfiler + UCB router | `ProblemProfiler` (new), `harness` | routing beats the best single fixed architecture on held-out tasks when archs specialize (10 tests — demonstrated on the mock) |
-| 7 | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23) | `ArchRunRecord` costs | a Pareto-optimal point vs human baselines |
+| **7 ✅** | Compute optimization: quality/reliability vs cost/tokens/latency Pareto (spec §13/§23/§40) | `ArchRunRecord` costs | Pareto frontier + efficiency + compression detection (10 tests — demonstrated) |
 | 8 | Failure-driven + success-driven invention (spec §27/§28): generate architectures from observed failures, compress bloated successes | Phase 4 + failure classification | invented arch beats the failing baseline |
 | 9 | Novel primitive discovery with compile/unit/adversarial/sandbox gates (spec §38/§39) | compiler + sandbox | new primitives pass their contract tests |
 | 10 | Meta-optimization: discover better discovery strategies (spec §24) | everything | bounded, auditable, gated — no unrestricted self-modification |

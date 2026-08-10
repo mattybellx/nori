@@ -37,6 +37,7 @@ from .evolution import (
     retire_unfit,
     validate_statistical,
 )
+from .pareto import pareto_summary, point_from_row
 from .primitives import ExecutionContext
 from .registry import (
     ArchitectureRegistry,
@@ -64,6 +65,9 @@ class DiscoveryConfig:
     alpha: float = 0.05
     novelty_weight: float = 0.0           # >0 adds a novelty bonus to beam (§16)
     retire_after: bool = True             # retire rejected zero-success archs (§18)
+    # Phase 7 (compute optimization / Pareto, §13/§23)
+    require_pareto: bool = False          # reject candidates whose compute didn't pay
+    pareto_margin: float = 0.05           # quality-equivalence tolerance (success-rate)
 
 
 @dataclass
@@ -90,6 +94,7 @@ class DiscoveryReport:
     promoted: list[str] = field(default_factory=list)
     rejected: list[str] = field(default_factory=list)
     total_candidates: int = 0
+    pareto: dict | None = None            # §13/§40 frontier summary of last round
 
     @property
     def no_promotion(self) -> bool:
@@ -105,6 +110,7 @@ class DiscoveryReport:
             "rejected": list(self.rejected),
             "total_candidates": self.total_candidates,
             "no_promotion": self.no_promotion,
+            "pareto": self.pareto,
         }
 
 
@@ -287,6 +293,21 @@ def discover(
                 gate["statistics"] = stats
                 if not stats["significant"]:
                     gate["passed"] = False
+            # Phase-7 Pareto gate (§13/§23): if the candidate's quality gain
+            # is within the margin of the incumbent BUT costs strictly more
+            # compute, the added compute did not pay for itself — reject
+            # (compression: prefer minimum compute for the desired quality).
+            if cfg.require_pareto and gate["passed"]:
+                if (inc_row.success_rate >= row.success_rate - cfg.pareto_margin - 1e-9
+                        and inc_row.avg_tokens < row.avg_tokens - 1e-9):
+                    gate["passed"] = False
+                    gate["pareto"] = {
+                        "rejected_reason": "compression loss",
+                        "inc_success": round(inc_row.success_rate, 4),
+                        "cand_success": round(row.success_rate, 4),
+                        "inc_tokens": round(inc_row.avg_tokens, 1),
+                        "cand_tokens": round(row.avg_tokens, 1),
+                    }
             if gate["passed"]:
                 registry.set_state(name, INDEPENDENTLY_VERIFIED)
                 registry.promote(name)
@@ -328,6 +349,13 @@ def discover(
             beam=[g.name for g, _ in population],
             best_candidate=(scored[0][2].name if scored else None),
             best_success=(scored[0][0] if scored else 0.0)))
+
+        # §13/§40: Pareto frontier summary over incumbent + this round's
+        # objective candidates (quality vs compute).
+        round_rows = {inc_name: inc_row}
+        for _op, _cand, _parent, _row in eligible:
+            round_rows[_cand.name] = _row
+        report.pareto = pareto_summary(round_rows)
 
     if cfg.retire_after:
         retire_unfit(registry)
