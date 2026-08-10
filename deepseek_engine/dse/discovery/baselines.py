@@ -51,6 +51,18 @@ def tree_search_graph() -> ArchGraph:
     return _strategy_arch("tree_search", "tree_search", "MCTS with per-step tests")
 
 
+def escalating_graph() -> ArchGraph:
+    return _strategy_arch("escalating", "escalating", "confidence-based cheap→expensive")
+
+
+def adaptive_graph() -> ArchGraph:
+    return _strategy_arch("adaptive", "adaptive", "compute-optimal allocation")
+
+
+def multi_agent_graph() -> ArchGraph:
+    return _strategy_arch("multi_agent", "multi_agent", "MoA-lite proposers + aggregator")
+
+
 def synthesis_pipeline_graph() -> ArchGraph:
     """The production never-worse pipeline as an executable graph:
 
@@ -125,6 +137,23 @@ def default_baselines() -> list[ArchGraph]:
         reflexion_graph(),
         self_refine_graph(),
         tree_search_graph(),
+        escalating_graph(),
+        adaptive_graph(),
+        multi_agent_graph(),
         synthesis_pipeline_graph(),
         disagreement_pipeline_graph(),
+    ]
+
+
+def strategy_baselines() -> list[ArchGraph]:
+    """Just the single-node strategy baselines (the wrapped Agent set)."""
+    return [
+        react_graph(),
+        best_of_n_graph(),
+        reflexion_graph(),
+        self_refine_graph(),
+        tree_search_graph(),
+        escalating_graph(),
+        adaptive_graph(),
+        multi_agent_graph(),
     ]

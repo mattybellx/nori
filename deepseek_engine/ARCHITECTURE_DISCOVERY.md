@@ -64,12 +64,43 @@ Verified: **202 tests passing** (21 new in `tests/test_discovery.py`), all
 deterministic on the seeded mock stack (per-(strategy, task) reseeding
 preserved).
 
+## What Phase 2 added (2026-08-11, DONE — 8 tests)
+
+`dse/discovery/evaluate.py` — the gate + the evaluation loop discovery will use:
+
+- `validate_equivalence(graph, strategy, ctx, tasks, seed)` — runs a baseline
+  graph and the strategy it wraps with IDENTICAL per-(strategy, task)
+  reseeds and reports every divergence (answer / success / tokens_in /
+  tokens_out). The Phase-2 gate: **a graph that wraps a strategy must
+  reproduce it exactly** — otherwise every later "discovered improvement"
+  would be an executor artifact.
+- `validate_all_baselines(ctx, tasks)` — checks every strategy baseline.
+  **Verified: react, best_of_n, reflexion, self_refine, tree_search,
+  escalating, adaptive all reproduce their strategies with ZERO mismatches
+  on the seeded mock stack.**
+- `benchmark_architectures(graphs, tasks, ctx, seed)` — head-to-head
+  leaderboard (§40): paired reseeding, per-architecture success rate /
+  mean verifier score / tokens / latency. Architectures needing a strategy
+  not in the context are **skipped and reported** (`BenchmarkResult.skipped`)
+  — never run as fake failure rows. Text-terminal pipelines honestly show
+  `avg_verifier_score = None` (no objective score) rather than a fake 0.
+- New baseline graphs added: `escalating`, `adaptive`, `multi_agent`
+  (the full Agent set is now expressible as graphs).
+
+Demo leaderboard (seeded mock, n=12 tasks, 4 steps): tree_search 100%,
+adaptive 100%, synthesis_pipeline 100% (n/a score — text terminal), reflexion
+66.7%, self_refine 66.7%, escalating 50%, best_of_n 33.3%, react 16.7%,
+multi_agent SKIPPED (not in the default stack). Matches the project's known
+mock hierarchy — the graphs reproduce reality.
+
+Verified: **210 tests passing** (8 new in `tests/test_discovery_eval.py`).
+
 ## The phased roadmap (spec §42 — adapt, don't boil the ocean)
 
 | Phase | Scope | Reuses | Gate |
 |---|---|---|---|
 | **1 ✅** | Executable graphs, primitives, compiler, executor, registry, baselines | strategies, guards, verifiers, harness | 21 tests |
-| 2 | Benchmark the baseline graphs head-to-head on the existing suites | `run_benchmark`, `run_never_worse` | baselines match the strategy results they wrap |
+| **2 ✅** | Validate + head-to-head the baseline graphs (Phase-2 gate: graph ≡ strategy) | `run_benchmark`, `run_never_worse` | baselines match the strategy results they wrap (8 equivalence tests) |
 | 3 | Candidate generation: mutation/insertion/deletion/substitution/reordering/duplication | `ArchGraph` + registry | each mutation compiles; graph-level unit tests |
 | 4 | Discovery loop v0: population + beam of candidates, fitness from `ArchRunRecord`, independent-judge gate, never-worse promotion gate | registry, `harness` stats | a discovered candidate can beat a baseline on held-out mock tasks |
 | 5 | Evolutionary search: selection, crossover, novelty preservation, retirement | Phase 4 loop | improvement survives bootstrap CI + sign test vs baselines |
